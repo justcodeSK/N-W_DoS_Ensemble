@@ -127,7 +127,7 @@ The web UI provides **user-friendly features** for cybersecurity researchers:
 ---
 
 ## 📽️ Presentation
-A Canva presentation is available here:  👉 [View Presentation](https://www.canva.com/design/DAGrLvjM8EM/EzZttgBOp__14OFiol62HQ/edit?utm_content=DAGrLvjM8EM&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+A Canva presentation is available here:  👉 [View Presentation](https://www.canva.com/design/DAGrLvjM8EM/rP4PS11I2SvLQcCgk6MOdQ/view?utm_content=DAGrLvjM8EM&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=hb7634373d2)
 
 ---
 
