@@ -1,0 +1,92 @@
+{% extends 'admins.html' %}
+{% load static %}
+
+{% block title %}Admin Sign Up{% endblock %}
+
+{% block content %}
+
+<!-- Signup Layout -->
+<div class="flex flex-col md:flex-row items-stretch justify-center fade-in max-w-6xl bg-black/60 p-0 rounded-xl shadow-lg backdrop-blur overflow-hidden">
+  
+  <!-- Left: Signup Form -->
+  <div class="w-full md:w-1/2 p-8">
+    <h1 class="text-5xl font-bold font-orbitron text-white text-left mb-10">Admin SignUP</h1>
+    <form action="{% url 'admin_signup' %}" method="post">
+      {% csrf_token %}
+      <div class="flex gap-4 mb-3">
+        <input class="form-control" name="afname" id="fname" type="text" placeholder="Enter First Name" required />
+        <input class="form-control" name="alname" id="lname" type="text" placeholder="Enter Last Name" required />
+      </div>
+      <div class="mb-3 flex gap-4">
+        <input class="form-control" name="adob" id="dob" type="date" required onchange="calculateAge()" />
+        <input class="form-control" id="age" name="aage" type="number" placeholder="Age will be calculated" readonly />
+      </div>
+      <div class="mb-3">
+        <input class="form-control" id="email" name="aemail" type="email" placeholder="Enter Email Address" required />
+      </div>
+      <div class="mb-3">
+        <input class="form-control" id="password" name="apassword" type="password" placeholder="Enter Password" required />
+      </div>
+      <div class="mb-4">
+        <input class="form-control" id="cpassword" type="password" placeholder="Confirm Password" required />
+      </div>
+      <div class="grid w-full">
+        <input class="btn btn-info text-black w-full" type="submit" id="signin" value="Sign Up" disabled>
+      </div>
+      <div class="invalid-feedback mt-2 text-red-400 text-sm" id="emailError" style="display: none;">Valid email is required.</div>
+      <small id="ageError" class="text-red-400" style="display: none;">You must be at least 18 years old to sign up.</small>
+    </form>
+  </div>
+
+  <!-- Right: Cybersecurity Image -->
+  <div class="hidden md:flex items-center justify-center w-full md:w-1/2 bg-gradient-to-br from-cyan-900 to-indigo-900">
+    <img src="https://images.unsplash.com/photo-1603791440384-56cd371ee9a7" alt="Cybersecurity Dashboard" class="w-full h-full object-cover opacity-90" />
+  </div>
+</div>
+
+<script>
+  const signupBtn = document.getElementById("signin");
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
+  const cpassword = document.getElementById("cpassword");
+  const emailError = document.getElementById("emailError");
+  const dob = document.getElementById("dob");
+  const age = document.getElementById("age");
+  const ageError = document.getElementById("ageError");
+
+  function calculateAge() {
+    const dobValue = dob.value;
+    if (dobValue) {
+      const birthDate = new Date(dobValue);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      age.value = calculatedAge;
+    } else {
+      age.value = "";
+    }
+    validateSignup();
+  }
+
+  function validateSignup() {
+    const validEmail = email.value.includes("@");
+    const pwMatch = password.value && password.value === cpassword.value;
+    const dobSelected = dob.value !== "";
+    const ageFilled = age.value !== "";
+    const isOldEnough = parseInt(age.value) >= 18;
+
+    emailError.style.display = validEmail ? "none" : "block";
+    ageError.style.display = (!isOldEnough && ageFilled) ? "block" : "none";
+
+    signupBtn.disabled = !(validEmail && pwMatch && dobSelected && ageFilled && isOldEnough);
+  }
+
+  email.addEventListener("input", validateSignup);
+  password.addEventListener("input", validateSignup);
+  cpassword.addEventListener("input", validateSignup);
+  dob.addEventListener("change", calculateAge);
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}IP Blocker{% endblock %}
+
+{% block content %}
+<style>
+  .form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 8px;
+    color: white;
+  }
+  .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .chat-box {
+    white-space: pre-line;
+    min-height: 100px;
+  }
+  #historyTable table {
+    border-spacing: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>
+
+<div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+  <h2 class="text-xl font-bold mb-4">IP Blocker Panel</h2>
+
+  <div class="flex justify-between items-center mb-3">
+    <span class="text-sm">Paste from clipboard</span>
+    <button onclick="fillIPFromClipboard()" title="Paste IPs"
+      class="btn btn-sm px-3 py-1 bg-gray-600 hover:bg-gray-500 rounded text-white">
+      <i class="fas fa-paste"></i>
+    </button>
+  </div>
+
+  <form id="ipForm" class="space-y-3" method="post">
+    {% csrf_token %}
+    <input type="text" id="source_ip" name="source_ip" placeholder="Source IP" class="form-control bg-dark text-white">
+    <input type="text" id="destination_ip" name="destination_ip" placeholder="Destination IP" class="form-control bg-dark text-white">
+    <div class="flex gap-4">
+      <button type="button" onclick="blockIP()" class="px-3 py-2 btn btn-info">
+        <i class="fa-solid fa-lock"></i>
+      </button>
+      <button type="button" onclick="unblockIP()" class="px-3 py-2 btn btn-info">
+        <i class="fa-solid fa-lock-open"></i>
+      </button>
+    </div>
+  </form>
+
+  <div id="statusMsg" class="mt-4 text-sm text-yellow-300"></div>
+
+  <div id="aiResponse" class="mt-4 p-4 bg-gray-800 text-white rounded-lg shadow-md min-h-[100px] whitespace-pre-line font-mono text-sm"></div>
+
+  <h3 class="mt-6 font-semibold">Blocked IP History</h3>
+  <div id="historyTable" class="mt-2 bg-gray-700 p-3 rounded text-sm max-h-60 overflow-y-auto"></div>
+
+  <h3 class="mt-6 font-semibold">Error Log</h3>
+  <div id="errorLogBox" class="mt-2 bg-red-800 text-white p-3 rounded text-sm max-h-40 overflow-y-auto whitespace-pre-line font-mono"></div>
+</div>
+
+<script>
+  const aiBox = document.getElementById('aiResponse');
+  const errorLogBox = document.getElementById('errorLogBox');
+  const errorLog = [];
+
+  function logError(message) {
+    const timestamp = new Date().toLocaleString();
+    const errorMsg = `[${timestamp}] ${message}`;
+    errorLog.push(errorMsg);
+    renderErrorLog();
+  }
+
+  function renderErrorLog() {
+    errorLogBox.textContent = errorLog.length ? errorLog.join("\n") : "✅ No errors recorded.";
+  }
+
+  function getCSRFToken() {
+    let cookieValue = null;
+    const name = 'csrftoken';
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function typeTextWithDots(element, text, typingDelay = 30, dotInterval = 500) {
+    if (window.dotIntervalId) clearInterval(window.dotIntervalId);
+    element.textContent = "";
+    let index = 0;
+
+    const typing = setInterval(() => {
+      element.textContent += text[index++];
+      if (index === text.length) {
+        clearInterval(typing);
+        let dotCount = 0;
+        const base = element.textContent;
+        window.dotIntervalId = setInterval(() => {
+          dotCount = (dotCount + 1) % 4;
+          element.textContent = base + ".".repeat(dotCount);
+        }, dotInterval);
+      }
+    }, typingDelay);
+  }
+
+  async function blockIP() {
+    const src = document.getElementById("source_ip").value.trim();
+    const dst = document.getElementById("destination_ip").value.trim();
+
+    if (!src || !dst) {
+      const msg = "⚠️ Both Source IP and Destination IP must be filled before blocking.";
+      typeTextWithDots(aiBox, msg);
+      logError("Missing input: Source or Destination IP for block.");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("source_ip", src);
+    form.append("destination_ip", dst);
+
+    try {
+      const res = await fetch("/block-ip/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: form
+      });
+
+      const data = await res.json();
+      const msg = data.message.includes("Blocked") ? `🔐 ${data.message}` : `❌ ${data.message}`;
+      typeTextWithDots(aiBox, msg);
+      if (!data.message.includes("Blocked")) logError(`Block failed: ${data.message}`);
+      loadHistory();
+    } catch (err) {
+      const error = "❌ Failed to send block request. Please try again.";
+      typeTextWithDots(aiBox, error);
+      logError("BlockIP JS error: " + err);
+    }
+  }
+
+  async function unblockIP() {
+    const src = document.getElementById("source_ip").value.trim();
+    const dst = document.getElementById("destination_ip").value.trim();
+
+    if (!src || !dst) {
+      const msg = "⚠️ Both Source IP and Destination IP must be filled before unblocking.";
+      typeTextWithDots(aiBox, msg);
+      logError("Missing input: Source or Destination IP for unblock.");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("source_ip", src);
+    form.append("destination_ip", dst);
+
+    try {
+      const res = await fetch("/unblock-ip/", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCSRFToken() },
+        body: form
+      });
+
+      const data = await res.json();
+      const msg = data.message.includes("Unblocked") ? `✅ ${data.message}` : `❌ ${data.message}`;
+      typeTextWithDots(aiBox, msg);
+      if (!data.message.includes("Unblocked")) logError(`Unblock failed: ${data.message}`);
+      loadHistory();
+    } catch (err) {
+      const error = "❌ Failed to send unblock request. Please try again.";
+      typeTextWithDots(aiBox, error);
+      logError("UnblockIP JS error: " + err);
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch("/history/");
+      const data = await res.json();
+
+      if (!data.length) {
+        document.getElementById("historyTable").innerHTML = "<p class='text-gray-300'>No history yet.</p>";
+        return;
+      }
+
+      let table = `<table class="w-full text-left text-sm text-white border-collapse border border-gray-600">
+        <thead class="bg-gray-800 text-white">
+          <tr>
+            <th class="p-2 border border-gray-600">Timestamp</th>
+            <th class="p-2 border border-gray-600">Action</th>
+            <th class="p-2 border border-gray-600">Source IP</th>
+            <th class="p-2 border border-gray-600">Destination IP</th>
+          </tr>
+        </thead><tbody>`;
+
+      data.forEach(entry => {
+        table += `<tr class="hover:bg-gray-700">
+          <td class="p-2 border border-gray-600">${entry.timestamp}</td>
+          <td class="p-2 border border-gray-600">${entry.action}</td>
+          <td class="p-2 border border-gray-600">${entry.source_ip}</td>
+          <td class="p-2 border border-gray-600">${entry.destination_ip}</td>
+        </tr>`;
+      });
+
+      table += "</tbody></table>";
+      document.getElementById("historyTable").innerHTML = table;
+    } catch (err) {
+      logError("History load failed: " + err);
+    }
+  }
+
+  async function fillIPFromClipboard() {
+    try {
+      const clipboard = await navigator.clipboard.readText();
+      const lines = clipboard.trim().split("\n").map(l => l.trim()).filter(Boolean);
+
+      if (lines.length === 2) {
+        document.getElementById("source_ip").value = lines[0];
+        document.getElementById("destination_ip").value = lines[1];
+        typeTextWithDots(aiBox, "📋 Clipboard pasted into IP fields...");
+      } else if (lines.length < 2) {
+        const msg = "⚠️ Clipboard must contain at least 2 lines: source and destination IP.";
+        typeTextWithDots(aiBox, msg);
+        logError("Clipboard error: too few lines.");
+      } else {
+        const msg = `❌ Clipboard contains too many lines (${lines.length}). Only 2 lines allowed.`;
+        typeTextWithDots(aiBox, msg);
+        logError("Clipboard error: too many lines.");
+      }
+    } catch (err) {
+      console.error("Clipboard error:", err);
+      typeTextWithDots(aiBox, "❌ Failed to access clipboard. Try again or check permissions.");
+      logError("Clipboard access error: " + err);
+    }
+  }
+
+  // Initialize on load
+  loadHistory();
+  renderErrorLog();
+</script>
+{% endblock %}

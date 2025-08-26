@@ -1,0 +1,417 @@
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}CSV Editer{% endblock %}
+
+{% block content %}
+  <style>
+    html, body {
+      overflow-x: hidden;
+    }
+    .card {
+      background-color: transparent;
+      color: #e0e0e0;
+      border-radius: 10px;
+      margin-right: 100px;
+    }
+    /* Remove margin-right on screens <= 768px */
+    @media (max-width: 768px) {
+      .card {
+        margin-right: 0;
+      }
+    }
+    #csvTable td,
+    #csvTable th {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+    .table-dark thead th {
+      background-color: #111 !important;
+      color: #fff;
+    }
+    .table-dark tbody tr {
+      background-color: #333 !important;
+      color: #eee;
+    }
+    .table-dark tbody tr:hover {
+      background-color: #444 !important;
+    }
+    .card-body {
+      overflow-x: hidden;
+    }
+    .scroll-wrapper {
+      overflow-x: auto;
+      position: relative;
+    }                                                      
+  </style>
+
+  <div class="container-fluid px-4 overflow-x-hidden mt-8 md:mt-0">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold tracking-widest">CSV File Editer</h1>
+    </header>
+
+    <p class="text-white mb-3">Upload a CSV file and click submit to view and edit its contents.</p>
+
+    <div class="card mb-4 h-100 backdrop-blur">
+      <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur w-full">
+        <div class="card-header bg-dark text-white">
+          <i class="fas fa-file-csv me-1"></i> CSV File Table
+          <button class="btn btn-sm btn-warning float-end" onclick="toggleModal('labelModal')">+ Add/Edit Label</button>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="csvFileInput" class="form-label text-white">Upload CSV File</label>
+            <input type="file" class="form-control" id="csvFileInput" accept=".csv">
+          </div>
+          
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <button class="btn btn-info text-black h-10 w-10 flex items-center justify-center" id="loadCsvBtn"><i class="fa-solid fa-circle-check text-2xl"></i></button>
+            <button class="btn btn-info text-black" onclick="saveCsvFile()"><i class="fa-solid fa-bookmark"></i></button>
+            <button class="btn btn-info text-black" onclick="localStorage.removeItem('cachedCsvData'); location.reload();"><i class="fa-solid fa-trash"></i></button>
+          
+            <div class="d-flex align-items-center text-white ms-3">
+              <label class="me-2 mb-0" for="copyModeSelect">Copy Mode:</label>
+              <select id="copyModeSelect" class="form-select bg-white text-black form-select-sm w-auto" style="outline: none; border: none; box-shadow: none;" >
+                <option value="ml">Copy for ML</option>
+                <option value="all">Copy All</option>
+              </select>
+            </div>
+          </div>          
+
+          <div class="w-full overflow-x-auto scroll-wrapper" style="max-width: 100%;">
+            <div style="min-width: 1000px;">
+              <table id="csvTable" class="table table-dark table-bordered table-hover mb-0 w-full">
+                <thead></thead>
+                <tbody id="trafficData"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="copy-tooltip" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.3s;"></div>
+
+    <!-- Labeling Modal -->
+    <div id="labelModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Add Label Column</h2>
+        <label class="block text-gray-700 font-semibold mb-1">Column Name</label>
+        <input id="labelColumn" type="text" placeholder="e.g. Status" class="w-full px-4 py-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" />
+        <label class="block text-gray-700 font-semibold mb-1">Label Value</label>
+        <input id="labelValue" type="text" placeholder="e.g. Malicious" class="w-full px-4 py-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" />
+        <div class="flex justify-end space-x-2">
+          <button onclick="toggleModal('labelModal')" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+          <button onclick="applyLabel()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+<script>
+let csvFile = null;
+
+function toggleModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.classList.toggle("hidden");
+}
+
+function applyLabel() {
+  const colName = document.getElementById('labelColumn').value.trim();
+  const value = document.getElementById('labelValue').value.trim();
+  if (!colName || !value) return alert("Fill both fields.");
+
+  const headerRow = document.querySelector("thead tr");
+  const dataRows = document.querySelectorAll("#trafficData tr");
+  const headers = Array.from(headerRow.children);
+
+  let copyIndex = headers.findIndex(th => th.textContent.trim() === "Copy");
+  if (copyIndex === -1) copyIndex = headers.length;
+
+  let colIndex = headers.findIndex(th => th.dataset.label === colName || th.textContent.trim().startsWith(colName));
+  const existing = colIndex !== -1;
+
+  if (!existing) {
+    const newTh = document.createElement("th");
+    newTh.dataset.label = colName;
+    newTh.innerHTML = `${colName} <button class="ml-2 text-red-600 hover:text-red-800" onclick="deleteLabelColumn('${colName}')"><i class="fas fa-trash-alt"></i></button>`;
+    headerRow.insertBefore(newTh, headerRow.children[copyIndex]);
+    colIndex = copyIndex;
+
+    dataRows.forEach(row => {
+      const td = document.createElement("td");
+      td.dataset.label = colName;
+      row.insertBefore(td, row.children[copyIndex]);
+    });
+  }
+
+  dataRows.forEach(row => {
+    const cell = row.children[colIndex];
+    if (cell) cell.textContent = value;
+  });
+
+  toggleModal('labelModal');
+}
+
+function deleteLabelColumn(label) {
+  const headerRow = document.querySelector("thead tr");
+  const ths = Array.from(headerRow.children);
+  const index = ths.findIndex(th => th.dataset.label === label || th.textContent.trim().startsWith(label));
+  if (index === -1) return;
+  headerRow.removeChild(headerRow.children[index]);
+  const dataRows = document.querySelectorAll("#trafficData tr");
+  dataRows.forEach(row => row.removeChild(row.children[index]));
+}
+
+function showTooltip(message) {
+  const tooltip = document.getElementById("copy-tooltip");
+  tooltip.innerText = message;
+  tooltip.style.opacity = 1;
+  setTimeout(() => tooltip.style.opacity = 0, 2000);
+}
+
+function copyTrafficRow(row) {
+    const mode = document.getElementById("copyModeSelect")?.value || "all";
+
+    const mlColumns = [
+            'Protocol',
+            'Src Port',
+            'Length',
+            'Payload',
+            'Flow Duration',
+            'PPS',
+            'BPS',
+            'Inter-arrival',
+            'Packet ID',
+            'Frag Offset',
+            'ICMP Type',
+            'SYN',
+            'ACK',
+            'RST',
+            'FIN',
+            'PSH',
+            'Total Packets',
+            'Total Bytes',
+            'Burstiness',
+            'Unique Dst Ports'
+    ];
+
+    const headerCells = Array.from(document.querySelectorAll('#csvTable thead th'));
+    const cellMap = Array.from(row.cells);
+    let selectedText = [];
+
+    if (mode === 'ml') {
+      const missing = [];
+
+      mlColumns.forEach(mlCol => {
+        const colIndex = headerCells.findIndex(th => th.textContent.trim().startsWith(mlCol));
+        if (colIndex !== -1 && colIndex < cellMap.length - 2) {
+          selectedText.push(cellMap[colIndex].innerText);
+        } else {
+          missing.push(mlCol);
+        }
+      });
+
+      if (missing.length > 0) {
+        showTooltip(`⚠️ Missing ML column(s): ${missing.join(", ")}`);
+        return;
+      }
+    } else {
+      selectedText = cellMap.slice(0, -2).map(cell => cell.innerText); // exclude last two (Copy & Delete)
+    }
+
+    navigator.clipboard.writeText(selectedText.join("\n")).then(() => showTooltip("✔️ Copied to clipboard"));
+  }
+
+document.addEventListener("DOMContentLoaded", function () {
+        //json storage start
+        const cachedData = localStorage.getItem('cachedCsvData');
+      if (cachedData) {
+        const data = JSON.parse(cachedData);
+        const thead = document.querySelector('#csvTable thead');
+        const tbody = document.querySelector('#trafficData');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        const headers = Object.keys(data[0]);
+        const headerRow = document.createElement('tr');
+
+        headers.forEach((header, idx) => {
+          const th = document.createElement('th');
+          th.dataset.label = header;
+          th.innerHTML = `${header} <button class="ml-2 text-red-500 hover:text-red-700" onclick="deleteLabelColumn('${header}')"><i class='fas fa-trash'></i></button>`;
+          headerRow.appendChild(th);
+        });
+
+        const copyHeader = document.createElement('th');
+        copyHeader.textContent = "Copy";
+        headerRow.appendChild(copyHeader);
+
+        const deleteHeader = document.createElement('th');
+        deleteHeader.textContent = "Delete";
+        headerRow.appendChild(deleteHeader);
+        thead.appendChild(headerRow);
+
+        data.forEach(rowData => {
+          const row = document.createElement('tr');
+          headers.forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = rowData[header];
+            td.contentEditable = true;
+            row.appendChild(td);
+          });
+
+          const copyTd = document.createElement('td');
+          const copyBtn = document.createElement('button');
+          copyBtn.className = "btn btn-sm btn-primary";
+          copyBtn.innerHTML = '<i class="fa-solid fa-copy" title="Copy row"></i>';
+          copyBtn.onclick = () => copyTrafficRow(row);
+          copyTd.appendChild(copyBtn);
+          row.appendChild(copyTd);
+
+          const deleteTd = document.createElement('td');
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = "btn btn-sm btn-danger";
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash" title="Delete row"></i>';
+          deleteBtn.onclick = () => row.remove();
+          deleteTd.appendChild(deleteBtn);
+          row.appendChild(deleteTd);
+
+          tbody.appendChild(row);
+        });
+      }
+    //end of json storage
+
+  document.getElementById('csvFileInput').addEventListener('change', function (e) {
+    csvFile = e.target.files[0];
+  });
+
+  document.getElementById('loadCsvBtn').addEventListener('click', function () {
+    if (!csvFile) return alert("Please select a CSV file first.");
+
+    Papa.parse(csvFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        const data = results.data;
+        const thead = document.querySelector('#csvTable thead');
+        const tbody = document.querySelector('#trafficData');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        const headers = Object.keys(data[0]);
+        const headerRow = document.createElement('tr');
+
+        headers.forEach((header, idx) => {
+          const th = document.createElement('th');
+          th.dataset.label = header;
+          th.innerHTML = `${header} <button class="ml-2 text-red-500 hover:text-red-700" onclick="deleteLabelColumn('${header}')"><i class='fas fa-trash'></i></button>`;
+          headerRow.appendChild(th);
+        });
+
+        const copyHeader = document.createElement('th');
+        copyHeader.textContent = "Copy";
+        headerRow.appendChild(copyHeader);
+
+        const deleteHeader = document.createElement('th');
+        deleteHeader.textContent = "Delete";
+        headerRow.appendChild(deleteHeader);
+        thead.appendChild(headerRow);
+
+        data.forEach(rowData => {
+          const row = document.createElement('tr');
+          headers.forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = rowData[header];
+            td.contentEditable = true;
+            row.appendChild(td);
+          });
+
+          // Copy Button
+          const copyTd = document.createElement('td');
+          const copyBtn = document.createElement('button');
+          copyBtn.className = "btn btn-sm btn-primary";
+          copyBtn.innerHTML = '<i class="fa-solid fa-copy" title="Copy row"></i>';
+          copyBtn.onclick = () => copyTrafficRow(row);
+          copyTd.appendChild(copyBtn);
+          row.appendChild(copyTd);
+
+          // Delete Button
+          const deleteTd = document.createElement('td');
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = "btn btn-sm btn-danger";
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash" title="Delete row"></i>';
+          deleteBtn.onclick = () => row.remove();
+          deleteTd.appendChild(deleteBtn);
+          row.appendChild(deleteTd);
+
+          tbody.appendChild(row);
+        });
+        localStorage.setItem('cachedCsvData', JSON.stringify(results.data));
+      }
+    });
+  });
+
+  // const topScroll = document.getElementById('topScroll');
+  // const tableWrapper = topScroll.nextElementSibling;
+  // topScroll.addEventListener('scroll', () => {
+  //   tableWrapper.scrollLeft = topScroll.scrollLeft;
+  // });
+  // tableWrapper.addEventListener('scroll', () => {
+  //   topScroll.scrollLeft = tableWrapper.scrollLeft;
+  // });
+});
+ 
+function saveCsvFile() {
+      let table = document.querySelector("table");
+      let headerRow = table.querySelector("thead tr");
+      let headers = Array.from(headerRow.querySelectorAll("th"));
+
+      // Same logic: exclude these columns
+      let unwantedIndexes = [];
+      headers.forEach((th, idx) => {
+          const text = th.textContent.trim().toLowerCase();
+          if (text === "#" || text === "time" || text === "info" || text === "copy" || text === "delete") {
+              unwantedIndexes.push(idx);
+          }
+      });
+
+      let rows = table.querySelectorAll("thead tr, tbody tr");
+      let csvContent = [];
+
+      rows.forEach(row => {
+          let rowData = [];
+          let cells = Array.from(row.querySelectorAll("th, td"));
+
+          cells.forEach((cell, index) => {
+              if (unwantedIndexes.includes(index)) return;
+
+              // Also skip if this cell contains a copy icon
+              if (cell.querySelector("i.fas.fa-copy")) return;
+
+              // Escape quotes for ML compatibility
+              rowData.push(`"${cell.innerText.replace(/"/g, '""')}"`);
+          });
+
+          // Only add non-empty rows
+          if (rowData.length > 0) {
+              csvContent.push(rowData.join(","));
+          }
+      });
+
+      // Trigger download
+      const csvFile = new Blob([csvContent.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const downloadLink = document.createElement("a");
+      downloadLink.href = URL.createObjectURL(csvFile);
+      downloadLink.download = "edited_data.csv";
+
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+  }
+</script>
+{% endblock %}

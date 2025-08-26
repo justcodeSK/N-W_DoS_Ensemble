@@ -1,0 +1,110 @@
+{% extends 'admins.html' %}
+{% load static %}
+
+{% block title %}Contact Messages{% endblock %}
+
+{% block content %}
+        <div class="content-section mt-2" id="about">
+          <header class="mb-6">
+            <h1 class="text-3xl font-bold tracking-widest">
+              Welcome to AttackNET ZERO – Admin Panel
+            </h1>
+            <p class="text-cyan-400">
+              Manage users, monitor activities, and respond to incoming messages efficiently.
+            </p>
+          </header>
+
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-white">
+                User Management
+              </h2>
+              <p class="text-gray-300">
+                Approve or reject new user registrations to control platform access.
+                Only approved users can log in. Admins can also remove existing users 
+                who violate the policies of AttackNET ZERO.
+              </p>
+            </div>
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-white">
+                Activity Log
+              </h2>
+              <p class="text-gray-300">
+                Track user actions in a detailed table format. Monitor activities like traffic analysis, 
+                CSV downloads, IP blocking, chart views, and label updates.
+              </p>
+            </div>
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-white">
+                Contact Messages
+              </h2>
+              <p class="text-gray-300">
+                View messages submitted through the Contact Us section on the homepage, 
+                including user queries and contact details.
+              </p>
+            </div>
+          </section>
+          <!-- Admins Table -->
+          <div class="mt-8 bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+            <h2 class="text-2xl font-bold text-white mb-4">All Admins</h2>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-white divide-y divide-gray-700">
+                <thead class="bg-gray-800">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">First Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">Last Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-table-body" class="divide-y divide-gray-700">
+                  {% for i in all_admins %}
+                  <tr id="admin-row-{{ i.id }}">
+                    <td class="px-6 py-3">{{ i.Afname }}</td>
+                    <td class="px-6 py-3">{{ i.Alname }}</td>
+                    <td class="px-6 py-3">{{ i.Aemail }}</td>
+                    <td class="px-6 py-3">
+                      {% if i.id != admin.id %}
+                      <button class="btn btn-danger btn-sm ajax-delete-admin" data-id="{{ i.id }}">
+                        <i class="fas fa-times"></i>
+                      </button>
+                      {% else %}
+                      <span class="text-xs text-gray-400 italic">Logged-in</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- AJAX Script -->
+          <script>
+            document.addEventListener("DOMContentLoaded", function () {
+              document.querySelectorAll(".ajax-delete-admin").forEach(btn => {
+                btn.addEventListener("click", function () {
+                  const adminId = this.dataset.id;
+                  if (confirm("Are you sure you want to delete this admin?")) {
+                    fetch(`/delete-admin/${adminId}/`, {
+                      method: "POST",
+                      headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                      }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.success) {
+                        document.getElementById(`admin-row-${adminId}`).remove();
+                      } else {
+                        alert(data.error || "Something went wrong.");
+                      }
+                    });
+                  }
+                });
+              });
+            });
+          </script>
+        </div>
+{% endblock %}

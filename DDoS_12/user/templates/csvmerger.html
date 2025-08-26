@@ -1,0 +1,413 @@
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}CSV Merger & Tools{% endblock %}
+
+{% block content %}
+<style>
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .card {
+    background-color: transparent;
+    color: #e0e0e0;
+    border-radius: 10px;
+  }
+
+  .table-dark thead th {
+    background-color: #111 !important;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .table-dark tbody tr {
+    background-color: #333 !important;
+    color: #eee;
+  }
+
+  .table-dark tbody tr:hover {
+    background-color: #444 !important;
+  }
+
+  .tool-label {
+    font-size: 0.875rem;
+    color: #fff;
+    margin-top: 0.5rem;
+    text-align: center;
+    display: block;
+  }
+
+  .csv-page {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    margin-right: 0.75rem;
+    flex: 0 0 auto;
+    transition: transform 0.2s, background-color 0.2s;
+  }
+
+  .csv-page:hover {
+    transform: scale(1.05);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  #csvPagesPanel {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.3);
+    scrollbar-width: thin;
+    max-width: 100%;
+    height: 58px;
+  }
+
+  /* Mobile improvements */
+  @media (max-width: 768px) {
+    #csvPagesPanel {
+      padding: 0.5rem 0.25rem;
+      gap: 0.25rem;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      max-width: 40%;
+    }
+
+    .csv-page {
+      font-size: 0.7rem;
+      padding: 0.5rem 0.75rem;
+      min-width: max-content;
+    }
+
+    .tool-label {
+      font-size: 0.7rem;
+    }
+
+    .btn {
+      width: 40px !important;
+      height: 40px !important;
+      font-size: 0.875rem;
+    }
+
+    h1 {
+      font-size: 1.75rem !important;
+    }
+  }
+</style>
+
+<div class="container-fluid px-3 overflow-x-hidden mt-4">
+  <header class="mb-4">
+    <h1 class="text-3xl font-bold tracking-widest">CSV File Merger</h1>
+  </header>
+
+  <div class="card mb-4 backdrop-blur">
+    <div class="bg-black/60 rounded-xl p-4 shadow-lg w-100">
+      <div class="card-header bg-dark text-white mb-3">
+        <i class="fas fa-layer-group me-1"></i> Upload and Merge CSV Files
+      </div>
+
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="multiCsvInput" class="form-label text-white">Upload CSV Files</label>
+          <input type="file" class="form-control form-control-sm" id="multiCsvInput" accept=".csv" multiple>
+        </div>
+
+        <!-- Unified Button Row -->
+        <div class="d-flex flex-wrap gap-3 justify-content-start align-items-end mb-4">
+
+          <!-- Action Buttons with labels on top -->
+          <div class="text-center d-flex flex-column align-items-center">
+            <span class="tool-label mb-1">Merge</span>
+            <button class="btn btn-info text-white d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px;"
+                    onclick="mergeCsvFiles(); setTimeout(viewMerged, 100)">
+              <i class="fa-solid fa-square-plus text-black text-2xl"></i>
+            </button>
+          </div>
+
+          <div class="text-center d-flex flex-column align-items-center">
+            <span class="tool-label mb-1">Download</span>
+            <button class="btn btn-info text-black d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px;" onclick="downloadMergedCSV()">
+              <i class="fa-solid fa-circle-down text-black text-2xl"></i>
+            </button>
+          </div>
+
+          <div class="text-center d-flex flex-column align-items-center">
+            <span class="tool-label mb-1">Clear</span>
+            <button class="btn btn-info text-white d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px;" onclick="clearAllCache()">
+              <i class="fa-solid fa-trash text-black text-2xl"></i>
+            </button>
+          </div>
+
+          <div class="text-center d-flex flex-column align-items-center">
+            <span class="tool-label mb-1">Transpose</span>
+            <button class="btn btn-info text-black d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px;" onclick="toggleTranspose()">
+              <i class="fa-solid fa-rotate text-black text-2xl"></i>
+            </button>
+          </div>
+
+          <div class="text-center d-flex flex-column align-items-center">
+            <span class="tool-label mb-1">Sort A-Z</span>
+            <button class="btn btn-info text-white d-flex align-items-center justify-content-center"
+                    style="width: 40px; height: 40px;" onclick="toggleSortDirection()">
+              <i class="fa-solid fa-arrow-up-a-z text-black text-2xl"></i>
+            </button>
+          </div>
+
+          <!-- Count + Page Panel Heading -->
+          <div class="text-start d-flex flex-column flex-grow-1">
+            <div class="d-flex flex-nowrap align-items-center gap-2 overflow-auto" style="min-height: 40px;">
+
+              <!-- Total Count Styled Like Button -->
+              <div class="btn btn-outline-light d-flex flex-column align-items-center justify-content-center text-nowrap"
+                  style="width: 40px; height: 40px; padding: 0;">
+                <span style="font-size: 0.65rem;">Total</span>
+                <span id="fileCount" style="font-size: 0.8rem; font-weight: bold;">0</span>
+              </div>
+
+              <!-- CSV Pages -->
+              <div id="csvPagesPanel"
+                  class="d-flex flex-nowrap gap-1 overflow-auto flex-grow-1 bg-dark rounded px-2"
+                  style="min-height: 20px;">
+                <!-- Dynamic buttons go here -->
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Table -->
+        <div class="w-100 overflow-auto mt-4">
+          <div class="table-responsive">
+            <table class="table table-dark table-bordered table-hover w-100" id="mergedCsvTable">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+<script>
+let filePages = JSON.parse(localStorage.getItem('csv_filePages') || '[]');
+let fileData = JSON.parse(localStorage.getItem('csv_fileData') || '{}');
+let mergedData = JSON.parse(localStorage.getItem('csv_mergedData') || '[]');
+let sortState = {};
+
+function initializeFromStorage() {
+  if (filePages.length > 0) {
+    document.getElementById('csvPagesPanel').innerHTML = '';
+    filePages.forEach(page => {
+      const div = document.createElement('div');
+      div.className = 'csv-page';
+      div.id = page.id;
+      div.textContent = page.name;
+      document.getElementById('csvPagesPanel').appendChild(div);
+    });
+    document.getElementById('fileCount').textContent = filePages.length;
+  }
+  if (mergedData.length > 0) {
+    const headers = Object.keys(mergedData[0]);
+    renderMergedTable(headers);
+  }
+}
+
+function mergeCsvFiles() {
+  const input = document.getElementById('multiCsvInput');
+  const files = Array.from(input.files);
+  if (!files.length) return alert("Select a CSV file");
+
+  files.forEach((file, index) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: results => {
+        const pageId = `page-${Date.now()}-${index}-${Math.floor(Math.random() * 10000)}`;
+        filePages.push({ id: pageId, name: file.name });
+        fileData[pageId] = results.data;
+
+        const div = document.createElement('div');
+        div.className = 'csv-page';
+        div.id = pageId;
+        div.textContent = file.name + ` (${results.data.length} rows)`;
+        document.getElementById('csvPagesPanel').appendChild(div);
+
+        document.getElementById('fileCount').textContent = filePages.length;
+
+        localStorage.setItem('csv_filePages', JSON.stringify(filePages));
+        localStorage.setItem('csv_fileData', JSON.stringify(fileData));
+      }
+    });
+  });
+
+  Sortable.create(document.getElementById('csvPagesPanel'), {
+    animation: 150,
+    onEnd: function () {
+      const nodes = document.querySelectorAll('#csvPagesPanel .csv-page');
+      filePages = Array.from(nodes).map(n => ({ id: n.id, name: n.textContent }));
+      localStorage.setItem('csv_filePages', JSON.stringify(filePages));
+    }
+  });
+}
+
+function viewMerged() {
+  mergedData = [];
+  let allHeaders = new Set();
+
+  filePages.forEach(p => {
+    if (fileData[p.id]) {
+      fileData[p.id].forEach(row => {
+        Object.keys(row).forEach(h => allHeaders.add(h));
+      });
+    }
+  });
+
+  const headers = Array.from(allHeaders);
+
+  filePages.forEach(p => {
+    if (fileData[p.id]) {
+      fileData[p.id].forEach(row => {
+        const normalizedRow = {};
+        headers.forEach(h => {
+          normalizedRow[h] = row[h] !== undefined ? row[h] : '0';
+        });
+        mergedData.push(normalizedRow);
+      });
+    }
+  });
+
+  localStorage.setItem('csv_mergedData', JSON.stringify(mergedData));
+  renderMergedTable(headers);
+}
+
+function renderMergedTable(headers) {
+  const thead = document.querySelector("#mergedCsvTable thead");
+  const tbody = document.querySelector("#mergedCsvTable tbody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  const headRow = document.createElement('tr');
+  headers.forEach((h, i) => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    th.onclick = () => sortTable(i);
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  mergedData.forEach(row => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td = document.createElement('td');
+      td.textContent = row[h];
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function clearAllCache() {
+  mergedData = [];
+  filePages = [];
+  fileData = {};
+  localStorage.clear();
+  document.querySelector("#mergedCsvTable thead").innerHTML = "";
+  document.querySelector("#mergedCsvTable tbody").innerHTML = "";
+  document.getElementById('csvPagesPanel').innerHTML = '';
+  document.getElementById('fileCount').textContent = '0';
+}
+
+function downloadMergedCSV() {
+  if (!mergedData.length) return alert("Nothing to download");
+  const csv = Papa.unparse(mergedData);
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "merged.csv";
+  link.click();
+}
+
+function transposeCsv() {
+  if (!mergedData.length) return;
+  const headers = Object.keys(mergedData[0]);
+  const transposed = headers.map(h => [h, ...mergedData.map(r => r[h])]);
+
+  const thead = document.querySelector("#mergedCsvTable thead");
+  const tbody = document.querySelector("#mergedCsvTable tbody");
+  thead.innerHTML = "";
+  tbody.innerHTML = "";
+
+  const headRow = document.createElement("tr");
+  transposed[0].forEach((_, i) => {
+    const th = document.createElement("th");
+    th.textContent = i === 0 ? "Header" : `Row ${i}`;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  transposed.forEach(row => {
+    const tr = document.createElement("tr");
+    row.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function sortTable(columnIndex) {
+  const table = document.querySelector("#mergedCsvTable tbody");
+  const rows = Array.from(table.rows);
+  const direction = sortState[columnIndex] === 'asc' ? 'desc' : 'asc';
+  sortState[columnIndex] = direction;
+
+  rows.sort((a, b) => {
+    const A = a.cells[columnIndex].textContent;
+    const B = b.cells[columnIndex].textContent;
+    return direction === 'asc' ? A.localeCompare(B, undefined, { numeric: true }) : B.localeCompare(A, undefined, { numeric: true });
+  });
+
+  table.innerHTML = "";
+  rows.forEach(row => table.appendChild(row));
+}
+let isTransposed = false;
+let lastSortedColumn = null;
+
+function toggleTranspose() {
+  if (isTransposed) {
+    viewMerged(); // revert to default view
+  } else {
+    transposeCsv(); // show transposed table
+  }
+  isTransposed = !isTransposed;
+}
+
+function toggleSortDirection() {
+  const thead = document.querySelector("#mergedCsvTable thead");
+  if (!thead || !thead.rows.length) return;
+  const firstHeader = thead.rows[0].cells[0];
+  if (!firstHeader) return;
+  sortTable(0); // toggle sort on the first column
+}
+
+
+window.onload = initializeFromStorage;
+</script>
+{% endblock %}

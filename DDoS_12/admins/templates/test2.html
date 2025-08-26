@@ -1,0 +1,187 @@
+{% extends 'admins.html' %}
+{% load static %}
+
+{% block title %}Activity Logs{% endblock %}
+
+{% block content %}
+<div class="content-section mt-2" id="logs">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold tracking-widest">Activity Logs</h1>
+    <p class="text-cyan-400">
+      Admin can view the Logs of all users.
+    </p>
+  </header>
+
+  <!-- Table -->
+  <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur overflow-x-auto">
+
+    <!-- Filter and Search Controls -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+      <!-- Pagination Selector -->
+      <div class="flex items-center space-x-2 text-white">
+        <select id="entriesSelect" class="bg-gray-800 text-white rounded px-2 py-1">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+
+      <!-- Search Field -->
+      <div>
+        <input type="text" id="searchInput" placeholder="Search..." class="px-3 py-2 rounded focus:outline-none focus:ring-2 text-black" />
+      </div>
+    </div>
+
+    <table id="logsTable" class="min-w-full divide-y divide-gray-700 text-white rounded-xl">
+      <thead class="bg-gray-800">
+        <tr>
+
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">First Name</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Last Name</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Traffic Monitoring</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">IDS Manual</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">CSV Viewer</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Graphs</th>
+          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">IP Tracking/Blocking</th>
+        </tr>
+
+      </thead>
+      <tbody id="tableBody" class="bg-black/50 divide-y divide-gray-700">
+        {% comment %} Replace these rows dynamically from backend {% endcomment %}
+        <tr>
+          <td class="px-2 py-2">John</td>
+          <td class="px-2 py-2">Doe</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Jane</td>
+          <td class="px-2 py-2">Smith</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Michael</td>
+          <td class="px-2 py-2">Brown</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Emily</td>
+          <td class="px-2 py-2">Davis</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">David</td>
+          <td class="px-2 py-2">Wilson</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Olivia</td>
+          <td class="px-2 py-2">Johnson</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Chris</td>
+          <td class="px-2 py-2">Lee</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Emma</td>
+          <td class="px-2 py-2">Moore</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Daniel</td>
+          <td class="px-2 py-2">Taylor</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+        <tr>
+          <td class="px-2 py-2">Sophia</td>
+          <td class="px-2 py-2">Anderson</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">1</td>
+          <td class="px-2 py-2">0</td>
+          <td class="px-2 py-2">1</td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("searchInput");
+  const entriesSelect = document.getElementById("entriesSelect");
+  const tableBody = document.getElementById("tableBody");
+  const rows = Array.from(tableBody.getElementsByTagName("tr"));
+
+  function updateTable() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const limit = entriesSelect.value === "all" ? rows.length : parseInt(entriesSelect.value);
+    let shown = 0;
+
+    rows.forEach(row => {
+      const rowText = row.innerText.toLowerCase();
+      const match = rowText.includes(searchTerm);
+      if (match && shown < limit) {
+        row.style.display = "";
+        shown++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
+
+  searchInput.addEventListener("input", updateTable);
+  entriesSelect.addEventListener("change", updateTable);
+  updateTable(); // initialize on load
+});
+</script>
+{% endblock %}

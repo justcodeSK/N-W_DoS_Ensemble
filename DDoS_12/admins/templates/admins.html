@@ -1,0 +1,588 @@
+{% load static %}
+{% load tz %} 
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <script>
+   const s = JSON.parse(localStorage.getItem("sidebarAccessSettings") || "{}");
+    document.write(`<style>
+      ${s.toggleAdmin === false ? '#btnahome{display:none !important;}' : ''}
+      ${s.toggleUmanage === false ? '#btnumnge{display:none !important;}' : ''}
+      ${s.toggleCus === false ? '#btncus{display:none !important;}' : ''}
+      ${s.toggleLogs === false ? '#btnlogs{display:none !important;}' : ''}
+      ${s.toggleBlocks === false ? '#btnblocks{display:none !important;}' : ''}
+
+    </style>`);
+  </script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   {% block title %}Admin Navbar{% endblock %}
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet"/>
+  <link href="{% static 'css/app2/styles.css' %}" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <!-- Include Alpine.js -->
+  <script defer="" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+   html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    #mainContent {
+      height: 100vh;
+      overflow-y: auto;
+    }
+  
+    @media (max-width: 768px) {
+      .sidebar-btn {
+        padding: 0.5rem !important;
+      }
+      .content-section {
+        padding: 1rem;
+      }
+      .text-3xl {
+        font-size: 1.5rem !important;
+      }
+      .text-xl {
+        font-size: 1.125rem !important;
+      }
+      .p-6 {
+        padding: 1rem !important;
+      }
+      .grid-cols-1.md\:grid-cols-3 {
+        grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+      }
+      aside {
+        background-color: rgba(0, 0, 0, 0.85) !important;
+        position: fixed !important;
+        top: 0;
+        z-index: 50;
+      }
+      #mainContent {
+        padding-top: 0 !important;
+      }
+      .burger-wrapper {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 60;
+      }
+      .nav-tabs{
+        padding-left: 40px;
+      }
+    }
+    @media (min-width: 769px) {
+      #mainContent {
+        padding-top: 0 !important;
+      }
+    }
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
+  <script>
+   window.addEventListener('load', () => {
+      const main = document.getElementById('mainContent');
+      main.classList.remove('opacity-0', 'translate-x-10');
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const buttons = document.querySelectorAll(".sidebar-btn");
+      const navButtons = Array.from(buttons).slice(0, -1);
+      const activeButtonIndex = parseInt(localStorage.getItem("activeSidebarIndex"), 10);
+      navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+      if (!isNaN(activeButtonIndex) && navButtons[activeButtonIndex]) {
+        navButtons[activeButtonIndex].classList.add("bg-cyan-500");
+      } else {
+        navButtons[0]?.classList.add("bg-cyan-500");
+      }
+      navButtons.forEach((button, index) => {
+        button.addEventListener("click", function () {
+          navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+          button.classList.add("bg-cyan-500");
+          localStorage.setItem("activeSidebarIndex", index);
+        });
+      });
+    });
+  </script>
+ </head>
+ <body class="bg-[#0f1a1c] text-white min-h-screen font-sans">
+  <div class="flex flex-col md:flex-row">
+   <!-- 🔧 Admin Sidebar with Transparent Burger -->
+<div x-data="{ open: false, activeSubMenu: '' }">
+
+  <!-- 🍔 Burger Button (Mobile Only) -->
+  <div class="burger-wrapper md:hidden fixed top-4 left-4 z-50">
+    <button @click="open = !open"
+            class="flex flex-col justify-center items-center w-10 h-10 bg-black/40 backdrop-blur-sm rounded-full shadow-md">
+      <div :class="open ? 'rotate-45 translate-y-[6px]' : ''"
+           class="w-6 h-0.5 bg-white mb-1 transition-all"></div>
+      <div :class="open ? 'opacity-0' : ''"
+           class="w-6 h-0.5 bg-white mb-1 transition-all"></div>
+      <div :class="open ? '-rotate-45 -translate-y-[6px]' : ''"
+           class="w-6 h-0.5 bg-white transition-all"></div>
+    </button>
+  </div>
+
+  <!-- 🔲 Transparent Backdrop -->
+  <div x-show="open" @click="open = false" x-transition
+       class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden" x-cloak></div>
+
+  <!-- 🟥 Sidebar -->
+  <aside :class="open ? 'translate-x-0' : '-translate-x-full'"
+         class="fixed md:relative top-0 left-0 w-48 md:w-16 bg-black/40 backdrop-blur-sm h-screen flex flex-col items-center py-6 space-y-4 transform transition-transform duration-300 md:translate-x-0 z-40">
+
+    <div id="btnahome" class="flex justify-center w-full">
+      <a href="{% url 'ahome' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500" title="About">
+          <i class="fa-solid fa-circle-info text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+
+    <div id="btnumnge" class="flex justify-center w-full">
+      <a href="{% url 'umanage' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500" title="User">
+          <i class="fa-solid fa-user-tie text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+
+    <div id="btncus" class="flex justify-center w-full">
+      <a href="{% url 'contactus' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500" title="Contact">
+          <i class="fa-solid fa-comments text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+
+    <div id="btnlogs" class="flex justify-center w-full">
+      <a href="{% url 'logs' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500" title="Logs">
+          <i class="fa-solid fa-book text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+
+    <div id="btnblocks" class="flex justify-center w-full">
+      <a href="{% url 'blocked_ips' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500" title="Blocked">
+          <i class="fa-solid fa-ban text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+
+    <!-- 🔚 Logout -->
+    <div class="flex justify-center w-full">
+      <a href="{% url 'logout' %}">
+        <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-red-500" title="Logout">
+          <i class="fas fa-sign-out-alt text-black text-2xl"></i>
+        </button>
+      </a>
+    </div>
+  </aside>
+</div>
+
+
+   <!-- Background and Content -->
+   <div class="relative z-10 w-full">
+    <div class="fixed inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=1350&amp;q=80')] bg-cover bg-center bg-blend-overlay bg-black/70">
+    </div>
+    <div class="relative z-10 w-full min-h-screen overflow-auto">
+     <main class="p-6 md:pl-[4.5rem] md:pr-6 opacity-0 translate-x-10 transition-all duration-700" id="mainContent">
+      <div class="max-w-screen-xl mx-auto">
+       {% block tabs %}
+       <!-- Styles -->
+       <!-- 🧭 Admin Tabs (Responsive + Sticky UI) -->
+        <style>
+          .nav-link {
+            color: inherit;
+            text-decoration: none;
+          }
+          .nav-link.active,
+          .nav-link:hover {
+            color: inherit;
+          }
+
+          @media (max-width: 768px) {
+             #mainContent {
+              padding-top: 0 !important;
+            }
+            #pageTab {
+              flex-direction: column !important;
+              align-items: stretch !important;
+            }
+            #pageTab .nav-item {
+              width: 100%;
+              margin-bottom: 0.5rem;
+            }
+            #pageTab .nav-link {
+              width: 100%;
+              text-align: center;
+              border-radius: 0.5rem;
+              background-color: rgba(255, 255, 255, 0.1);
+            }
+            #pageTab .nav-link.active {
+              background-color: rgba(255, 255, 255, 0.2);
+            }
+          }
+        </style>
+
+        <!-- Scripts (already likely in your page, but include if needed) -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mt-4 me-5 flex-wrap md:flex-nowrap gap-2 sticky top-0 z-40 shadow-sm" id="pageTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <b>
+              <button aria-controls="attacknet" aria-selected="true" class="nav-link active" data-bs-target="#attacknet" data-bs-toggle="tab" id="attacknet-tab" role="tab" type="button">
+                Admin Panel
+              </button>
+            </b>
+          </li>
+          <li class="nav-item" role="presentation">
+            <b>
+              <button aria-controls="settings" aria-selected="false" class="nav-link" data-bs-target="#settings" data-bs-toggle="tab" id="settings-tab" role="tab" type="button">
+                Settings
+              </button>
+            </b>
+          </li>
+        </ul>
+
+       {% endblock %}
+       <!-- Tab Content -->
+       <div class="tab-content rounded-xl shadow-lg mt-2" id="pageTabContent">
+        <div aria-labelledby="attacknet-tab" class="tab-pane fade show active" id="attacknet" role="tabpanel" x-data="{ open: false }">
+         {% block content %}
+                
+         {% endblock %}
+        </div>
+        <!-- Settings Section -->
+        <div aria-labelledby="settings-tab" class="tab-pane fade mt-2" id="settings" role="tabpanel">
+         <div class="max-w-7xl mx-auto w-full">
+          <div class="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+
+           <!-- Toggle Edit + Admin Sign Up Button Row -->
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center">
+                <input class="mr-2" id="enableEdit" type="checkbox"/>
+                <label class="text-lg font-semibold" for="enableEdit">
+                  Enable Edit
+                </label>
+              </div>
+
+              <!-- Admin Sign Up Button (aligned to right) -->
+              <a href="{% url 'admin_signup' %}" 
+                class="btn btn-dark w-14 h-14 flex items-center justify-center rounded-full ml-auto"
+                title="Sign up" data-bs-placement="left">
+                <i class="fas fa-user-plus"></i>
+              </a>
+            </div>
+
+           <!-- Form -->
+           <!-- <form class="space-y-4" id="SignupForm"> -->
+           <form class="space-y-4" id="SignupForm" method="post" action="{% url 'admins' %}">
+            {% csrf_token %}
+
+            <!-- Hidden field for storing the admin ID (if we are updating) -->
+            <input type="hidden" name="aid" value="{{ admin.id|default:'' }}">
+
+            <div class="flex gap-4">
+              <div class="w-1/2">
+                <label class="block font-semibold">First Name</label>
+                <input class="w-full p-2 rounded bg-gray-800 text-white"
+                      name="afname"
+                      id="fname"
+                      type="text" readonly 
+                      value="{{ admin.Afname|default:'' }}" required/>
+              </div>
+              <div class="w-1/2">
+                <label class="block font-semibold">Last Name</label>
+                <input class="w-full p-2 rounded bg-gray-800 text-white"
+                      name="alname"
+                      id="lname"
+                      type="text" readonly 
+                      value="{{ admin.Alname|default:'' }}" required/>
+              </div>
+            </div>
+
+            <div class="flex gap-4">
+              <div class="w-1/2">
+                <label class="block font-semibold">Date of Birth</label>
+                <input class="w-full p-2 rounded bg-gray-800 text-white"
+                      name="adob"
+                      id="dob"
+                      type="date" readonly 
+                      value="{{ admin.Adob|date:'Y-m-d'|default:'' }}" required/>
+              </div>
+              <div class="w-1/2">
+                <label class="block font-semibold">Age</label>
+                <input class="w-full p-2 rounded bg-gray-800 text-white"
+                      name="aage"
+                      id="age"
+                      type="text" readonly 
+                      value="{{ admin.Aage|default:'' }}" required/>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold">Email</label>
+              <input class="w-full p-2 rounded bg-gray-800 text-white"
+                    name="aemail"
+                    id="email"
+                    type="email" readonly 
+                    value="{{ admin.Aemail|default:'' }}" required/>
+            </div>
+
+            <div class="pt-4">
+              <button class="btn btn-info h-10 w-10 flex items-center justify-center rounded" readonly id="signin">
+                <i class="fa-solid fa-circle-check text-2xl"></i>
+              </button>
+            </div>
+          </form>
+
+           <!-- Access Options -->
+            <div class="pt-4 border-t border-gray-700 mt-4">
+             <div class="flex justify-between items-center mb-2">
+                <h2 class="font-bold">
+                Access Options
+                </h2>
+                  <div class="flex items-center gap-4 mt-4">
+                    <button class="text-sm text-red-400 underline hover:text-red-600" id="clearCacheBtn">
+                      Clear Cache
+                    </button>
+                    <div class="w-px h-4 bg-gray-500">
+                    </div>
+                    <button class="text-sm text-blue-400 underline hover:text-blue-600" id="reloadPageBtn">
+                      <i class="fa-solid fa-rotate text-white">
+                      </i>
+                    </button>
+                  </div>
+             </div>
+            </div>
+           <div class="grid grid-cols-2 gap-4" id="accessOptions">
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleAdmin" type="checkbox"/>
+                Admin Home
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleUmanage" type="checkbox"/>
+                User Management
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleLogs" type="checkbox"/>
+                Logs
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleCus" type="checkbox"/>
+                Contact Us
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleBlocks" type="checkbox"/>
+                Blocked IPS
+                </label>
+             </div>
+          </div>
+          </div>
+         </div>
+        </div>
+       </div>
+       <!-- JavaScript Logic -->
+       <script>
+        const signupBtn = document.getElementById("signin");
+              const email = document.getElementById("email");
+              const dob = document.getElementById("dob");
+              const age = document.getElementById("age");
+              const emailError = document.getElementById("emailError");
+              const ageError = document.getElementById("ageError");
+
+              function validateSignup() {
+                const validEmail = email.value.includes("@");
+                const dobSelected = dob.value !== "";
+                const ageValid = parseInt(age.value) >= 18;
+
+                emailError.style.display = validEmail ? "none" : "block";
+                ageError.style.display = ageValid ? "none" : "block";
+
+                signupBtn.disabled = !(validEmail && pwMatch && dobSelected && ageValid);
+              }
+
+              function calculateAge() {
+                const dobValue = dob.value;
+                if (dobValue) {
+                  const birthDate = new Date(dobValue);
+                  const today = new Date();
+                  let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+                  const m = today.getMonth() - birthDate.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    calculatedAge--;
+                  }
+                  age.value = calculatedAge;
+                } else {
+                  age.value = "";
+                }
+                validateSignup();
+              }
+
+              email.addEventListener("input", validateSignup);
+              dob.addEventListener("change", calculateAge);
+
+               document.getElementById("enableEdit").addEventListener("change", function () {
+                const enabled = this.checked;
+
+                // Select all input fields inside the form (excluding hidden and checkbox)
+                document.querySelectorAll("#SignupForm input").forEach(input => {
+                  if (input.type !== "hidden" && input.type !== "checkbox") {
+                    input.readOnly = !enabled;
+                  }
+                });
+
+                // Toggle submit button
+                document.getElementById("signin").disabled = !enabled;
+              });
+
+              // Set fields to readonly and disable submit on page load
+              document.addEventListener("DOMContentLoaded", function () {
+                document.querySelectorAll("#SignupForm input").forEach(input => {
+                  if (input.type !== "hidden" && input.type !== "checkbox") {
+                    input.readOnly = true;
+                  }
+                });
+                document.getElementById("signin").disabled = true;
+              });
+
+              // navbar dissapear code 
+              // <!-- Toggle Sidebar Visibility Script -->
+              const toggleSettings = [
+                { checkboxId: 'toggleAdmin', btnId: 'btnahome', key: 'toggleAdmin' },
+                { checkboxId: 'toggleUmanage', btnId: 'btnumnge', key: 'toggleUmanage' },
+                { checkboxId: 'toggleLogs', btnId: 'btncus', key: 'toggleLogs' },
+                { checkboxId: 'toggleCus', btnId: 'btnlogs', key: 'toggleCus' },
+                { checkboxId: 'toggleBlocks', btnId: 'btnblocks', key: 'toggleBlocks' },
+              ];
+
+              const LOCAL_STORAGE_KEY = "sidebarAccessSettings";
+
+              function saveSettings() {
+                const settings = {};
+                toggleSettings.forEach(({ checkboxId, key }) => {
+                  const cb = document.getElementById(checkboxId);
+                  if (cb) settings[key] = cb.checked;
+                });
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
+              }
+
+              function loadSettings() {
+                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (saved) {
+                  try {
+                    const parsed = JSON.parse(saved);
+                    toggleSettings.forEach(({ checkboxId, key }) => {
+                      const cb = document.getElementById(checkboxId);
+                      if (cb && parsed.hasOwnProperty(key)) {
+                        cb.checked = parsed[key];
+                      }
+                    });
+                  } catch (e) {
+                    console.error("Failed to parse sidebar settings:", e);
+                  }
+                }
+              }
+
+              function updateSidebarVisibility() {
+                const settings = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+                toggleSettings.forEach(({ btnId, key }) => {
+                  const btn = document.getElementById(btnId);
+                  const isVisible = settings[key] !== false;
+                  if (btn) btn.style.display = isVisible ? "flex" : "none";
+                });
+              }
+
+                            
+              function setupSidebarToggles() {
+                toggleSettings.forEach(({ checkboxId, btnId, key }) => {
+                  const cb = document.getElementById(checkboxId);
+                  const btn = document.getElementById(btnId);
+                  if (cb && btn) {
+                    cb.addEventListener("change", () => {
+                      const isChecked = cb.checked;
+                      btn.style.display = isChecked ? "flex" : "none";
+
+                      const currentSettings = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+                      currentSettings[key] = isChecked;
+                      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentSettings));
+                    });
+                  }
+                });
+              }
+
+
+              function clearSidebarCache() {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                location.reload(); // Resets all settings and shows all buttons
+              }
+
+              document.addEventListener("DOMContentLoaded", () => {
+                loadSettings();
+                updateSidebarVisibility();
+                setupSidebarToggles();
+                const clearBtn = document.getElementById("clearCacheBtn");
+                if (clearBtn) clearBtn.addEventListener("click", clearSidebarCache);
+              });
+
+              // reload button with the enable code
+                document.getElementById("reloadPageBtn").addEventListener("click", function () {
+                  location.reload();
+                });
+                document.addEventListener("DOMContentLoaded", function () {
+                  // Sidebar button logic (unchanged)
+                  const buttons = document.querySelectorAll(".sidebar-btn");
+                  const navButtons = Array.from(buttons).slice(0, -1);
+                  const activeButtonIndex = parseInt(localStorage.getItem("activeSidebarIndex"), 10);
+                  navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+                  if (!isNaN(activeButtonIndex) && navButtons[activeButtonIndex]) {
+                    navButtons[activeButtonIndex].classList.add("bg-cyan-500");
+                  } else {
+                    navButtons[0]?.classList.add("bg-cyan-500");
+                  }
+                  navButtons.forEach((button, index) => {
+                    button.addEventListener("click", function () {
+                      navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+                      button.classList.add("bg-cyan-500");
+                      localStorage.setItem("activeSidebarIndex", index);
+                    });
+                  });
+
+                  // Enable Edit checkbox logic
+                  const enableEditCheckbox = document.getElementById('enableEdit');
+                  const formInputs = document.querySelectorAll('#SignupForm input');
+
+                  enableEditCheckbox.addEventListener('change', function () {
+                    formInputs.forEach(input => {
+                      if (input.type !== 'checkbox') {
+                        input.readOnly = !this.checked;
+                        input.classList.toggle('bg-gray-800', !this.checked);
+                        input.classList.toggle('bg-white', this.checked);
+                        input.classList.toggle('text-black', this.checked);
+                        input.classList.toggle('text-white', !this.checked);
+                      }
+                    });
+                  });
+                });
+       </script>
+      </div>
+     </main>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

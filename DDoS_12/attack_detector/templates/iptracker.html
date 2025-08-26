@@ -1,0 +1,186 @@
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}IP Tracker{% endblock %}
+
+{% block content %}
+<style>
+  .card {
+    background-color: transparent;
+    color: #e0e0e0;
+    border-radius: 10px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: #333;
+    color: white;
+  }
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .blinking-cursor {
+    font-weight: bold;
+    animation: blink 1s step-start infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+</style>
+
+<div class="container-fluid px-4 mt-8 md:mt-0">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold tracking-widest text-white">
+      IP Address Tracker & Mock Intelligence
+    </h1>
+  </header>
+
+  <div class="card mb-4 shadow-lg h-100">
+    <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+      <div class="card-header bg-dark text-white d-flex justify-between items-center">
+        <span>
+          <i class="fas fa-shield-alt me-1"></i> Track IP Address
+        </span>
+      </div>
+
+      <div class="card-body">
+        <form onsubmit="event.preventDefault(); fetchAttackerIntel();">
+          <div class="d-flex align-items-center mb-3">
+            <input type="text" id="ipInput" class="form-control bg-dark text-white me-3" placeholder="Enter Simulated IP Address (e.g. 127.0.0.1)" required>
+            <button type="submit" class="btn btn-success mb-0">
+              <i class="fas fa-crosshairs"></i>
+            </button>
+          </div>
+
+          <div id="typingPanel" class="mt-4 p-4 bg-gray-800 text-white rounded-lg shadow-md min-h-[100px] whitespace-pre-line font-mono text-sm">
+            <span id="aiText"></span><span class="blinking-cursor">|</span>
+          </div>
+
+          <div class="mt-4">
+            <div id="map" style="height: 50vh; width: 100%; border-radius: 10px; overflow: hidden;"></div>
+            <div id="pano" style="height: 50vh; width: 100%; border-radius: 10px; overflow: hidden; margin-top: 1rem;"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let map, marker, infoWindow, panorama;
+
+  function initMap(defaultToRandom = true) {
+    const randomLocation = { lat: 48.8584, lng: 2.2945 }; // Eiffel Tower
+    const mapCenter = defaultToRandom ? randomLocation : { lat: 0, lng: 0 };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 14,
+      center: mapCenter,
+      fullscreenControl: false,
+      streetViewControl: false,
+      mapTypeControl: false,
+    });
+
+    panorama = new google.maps.StreetViewPanorama(
+      document.getElementById("pano"), {
+        position: mapCenter,
+        pov: {
+          heading: 34,
+          pitch: 10,
+        },
+        visible: true,
+        pano: undefined
+      }
+    );
+
+    map.setStreetView(panorama);
+
+    if (defaultToRandom) {
+      marker = new google.maps.Marker({
+        position: randomLocation,
+        map: map,
+        title: "Random Mock Activity"
+      });
+
+      infoWindow = new google.maps.InfoWindow({
+        content: `<div style='color:black'><strong>Mock Activity</strong><br>Unidentified traffic source</div>`
+      });
+
+      infoWindow.open(map, marker);
+    }
+  }
+
+  function fetchAttackerIntel() {
+    const ip = document.getElementById('ipInput').value.trim();
+    const panel = document.getElementById('aiText');
+    panel.textContent = '';
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(5);
+          const lng = position.coords.longitude.toFixed(5);
+          const msg = `Simulated attacker IP ${ip} resolved. Location traced to coordinates: Latitude ${lat}, Longitude ${lng}. You are both the attacker and the mitigator.`;
+
+          let i = 0;
+          const typing = setInterval(() => {
+            if (i < msg.length) {
+              panel.textContent += msg[i++];
+            } else {
+              clearInterval(typing);
+              setTimeout(() => updateMapToCurrentLocation(position), 400);
+            }
+          }, 35);
+        },
+        (error) => {
+          panel.textContent = 'Geolocation error: ' + error.message;
+        }
+      );
+    } else {
+      panel.textContent = 'Geolocation not supported.';
+    }
+  }
+
+  function updateMapToCurrentLocation(position) {
+    const center = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+    };
+
+    map.setCenter(center);
+
+    const streetViewService = new google.maps.StreetViewService();
+    const radius = 50; // meters – can increase if needed
+
+    streetViewService.getPanorama({ location: center, radius: radius }, (data, status) => {
+        if (status === google.maps.StreetViewStatus.OK) {
+        panorama.setPano(data.location.pano);
+        panorama.setPov({ heading: 34, pitch: 10 });
+        panorama.setVisible(true);
+        } else {
+        document.getElementById('aiText').textContent += `\nStreet View not available for your exact location.`;
+        }
+    });
+
+    if (marker) marker.setMap(null);
+    marker = new google.maps.Marker({
+        position: center,
+        map: map,
+        title: "Your Location"
+    });
+
+    if (infoWindow) infoWindow.close();
+    infoWindow = new google.maps.InfoWindow({
+        content: `<div style='color:black'><strong>Simulated Threat Origin</strong><br>This device location</div>`
+    });
+    infoWindow.open(map, marker);
+    }
+
+
+  window.onload = () => initMap(true);
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=Add_your_API_Key_here" async defer></script><!-- Replace with your api key -->
+{% endblock %}

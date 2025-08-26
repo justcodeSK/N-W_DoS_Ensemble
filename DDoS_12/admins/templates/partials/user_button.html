@@ -1,0 +1,13 @@
+{% if i.Value == 0 %}
+  <a href="{% url 'uapprove' i.id %}" class="ajax-approve" data-id="{{ i.id }}">
+    <button class="btn btn-success btn-sm" type="button">
+      <i class="fas fa-check"></i>
+    </button>
+  </a>
+{% else %}
+  <a href="{% url 'deluser' i.id %}" class="ajax-delete" data-id="{{ i.id }}">
+    <button class="btn btn-danger btn-sm" type="button">
+      <i class="fas fa-times"></i>
+    </button>
+  </a>
+{% endif %}

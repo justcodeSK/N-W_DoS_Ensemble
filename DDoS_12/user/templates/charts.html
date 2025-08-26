@@ -1,0 +1,332 @@
+
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}Charts{% endblock %}
+
+{% block content %}
+<style>
+    .chart-container {
+        margin-top: 20px;
+        height: auto;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .card {
+        background-color: transparent;
+        color: #e0e0e0;
+        border-radius: 10px;
+    }
+    @media (max-width: 768px) {
+        .chart-container canvas {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        .card-body {
+            overflow-x: auto;
+        }
+    }
+
+    #chartCaptureArea.exporting .card-header,
+    #chartCaptureArea.exporting .card-footer {
+      display: none !important;
+    }
+    #chartCaptureArea.exporting .card {
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+  </style>
+
+<main>
+    <div class="container-fluid px-4 mt-8 md:mt-0">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold tracking-widest">
+                Real-Time NetCharts
+            </h1>
+        </header>
+        <p class="text-white mb-3">Charts based on previously cached traffic data.</p>
+
+        <div id="copy-tooltip" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:6px 12px;border-radius:6px;font-size:14px;opacity:0;pointer-events:none;transition:opacity 0.3s;z-index:9999;"></div>
+
+        <div class="card mb-4 h-100 backdrop-blur">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-chart-simple me-1"></i> Statistical View
+                </span>
+                <button onclick="downloadChartsAsImage()" class="btn btn-warning">
+                    <i class="fa-solid fa-camera-retro"></i>
+                </button>
+            </div>     
+            <div class="card-body">
+                <div id="chartCaptureArea">
+                    <div class="row gy-4">
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-chart-area me-1"></i> Packet Size Over Time
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="packetSizeChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-chart-line me-1"></i> Packets Per Second (PPS)
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="ppsChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-network-wired me-1"></i> Bandwidth (BPS)
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="bpsChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-globe me-1"></i> IP Address Distribution
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="ipDistributionChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-project-diagram me-1"></i> Protocol Distribution
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="protocolChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="col-12 col-lg-6">
+                            <div class="card shadow-lg h-100">
+                                <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+                                    <div class="card-header bg-dark text-white">
+                                        <i class="fas fa-database me-1"></i> Total Packet Distribution
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="totalPacketChart" height="300"></canvas>
+                                    </div>
+                                    <div class="card-footer text-white cachedStatus"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const cached = localStorage.getItem("cachedRealtimeTrafficData") || localStorage.getItem("cachedTrafficData");
+    if (!cached) {
+        showTooltip("⚠️ No cached traffic data found.");
+        return;
+    }
+    
+
+    const data = JSON.parse(cached);
+    const labels = [];
+    const packetSizes = [];
+    const pps = [];
+    const bps = [];
+    const ipMap = {};
+    const protocolMap = { TCP: 0, UDP: 0, ICMP: 0, Other: 0 };
+
+    data.forEach(entry => {
+        const time = entry["Time"] || "";
+        labels.push(time);
+        packetSizes.push(Number(entry["Length"]) || 0);
+        pps.push(Number(entry["PPS"]) || 0);
+        bps.push(Number(entry["BPS"]) || 0);
+
+        const srcIP = entry["Source IP"] || "Unknown";
+        ipMap[srcIP] = (ipMap[srcIP] || 0) + 1;
+
+        const protocol = entry["Protocol"] || "Other";
+        if (protocolMap.hasOwnProperty(protocol)) {
+            protocolMap[protocol]++;
+        } else {
+            protocolMap.Other++;
+        }
+    });
+
+    // Show finishing time in footers
+    const timeLabels = data.map(entry => entry["Time"]).filter(Boolean);
+    const finishTime = timeLabels.length ? timeLabels[timeLabels.length - 1] : "Unknown";
+    document.querySelectorAll(".cachedStatus").forEach(el => {
+        el.textContent = `Data Captured Until: ${finishTime}`;
+    });
+
+    const createLineChart = (ctxId, label, data, color) => {
+        new Chart(document.getElementById(ctxId), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: label,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + "33",
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: "white" } } },
+                scales: {
+                    x: { ticks: { color: "white" } },
+                    y: { ticks: { color: "white" }, beginAtZero: true }
+                }
+            }
+        });
+    };
+
+    const createBarChart = (ctxId, label, map, color) => {
+        new Chart(document.getElementById(ctxId), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(map),
+                datasets: [{
+                    label: label,
+                    data: Object.values(map),
+                    backgroundColor: color
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: "white" } } },
+                scales: { y: { ticks: { color: "white" }, beginAtZero: true } }
+            }
+        });
+    };
+
+    const createPieChart = (ctxId, label, map, colors) => {
+        new Chart(document.getElementById(ctxId), {
+            type: 'pie',
+            data: {
+                labels: Object.keys(map),
+                datasets: [{
+                    label: label,
+                    data: Object.values(map),
+                    backgroundColor: colors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: "white" } } }
+            }
+        });
+    };
+
+    createLineChart("packetSizeChart", "Packet Size", packetSizes, "blue");
+    createLineChart("ppsChart", "Packets/sec", pps, "green");
+    createLineChart("bpsChart", "Bytes/sec", bps, "red");
+    createBarChart("ipDistributionChart", "IP Distribution", ipMap, "purple");
+    createPieChart("protocolChart", "Protocol Distribution", protocolMap, ["blue", "green", "yellow", "gray"]);
+    createPieChart("totalPacketChart", "Total Packets by Protocol", protocolMap, ["blue", "green", "yellow", "gray"]);
+});
+
+function downloadChartsAsImage() {
+    const cached = localStorage.getItem("cachedRealtimeTrafficData") || localStorage.getItem("cachedTrafficData");
+    if (!cached) {
+        showTooltip("⚠️ No cached traffic data found. Cannot download.");
+        return;
+    }
+
+    const chartArea = document.getElementById("chartCaptureArea");
+    if (!chartArea) {
+        showTooltip("⚠️ Chart container not found");
+        return;
+    }
+
+    // Clone chart container
+    const clone = chartArea.cloneNode(true);
+    clone.style.pointerEvents = "none";
+    clone.style.position = "absolute";
+    clone.style.top = "-9999px";
+    clone.style.left = "-9999px";
+    clone.classList.add("exporting");
+
+    // Append to body so it's part of the DOM
+    document.body.appendChild(clone);
+
+    // Copy canvas contents from original to clone
+    const originalCanvases = chartArea.querySelectorAll("canvas");
+    const clonedCanvases = clone.querySelectorAll("canvas");
+
+    originalCanvases.forEach((origCanvas, i) => {
+        const cloneCanvas = clonedCanvases[i];
+        const context = cloneCanvas.getContext("2d");
+        context.drawImage(origCanvas, 0, 0);
+    });
+
+    // Capture with html2canvas
+    html2canvas(clone, {
+        backgroundColor: "#111",
+        scale: 2,
+        useCORS: true
+    }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "charts_only.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+
+        document.body.removeChild(clone);
+    }).catch(() => {
+        showTooltip("⚠️ Failed to capture chart");
+        document.body.removeChild(clone);
+    });
+}
+
+function showTooltip(message) {
+  const tooltip = document.getElementById("copy-tooltip");
+  tooltip.innerText = message;
+  tooltip.style.opacity = 1;
+  setTimeout(() => tooltip.style.opacity = 0, 2000);
+}
+
+</script>
+
+{% endblock %}

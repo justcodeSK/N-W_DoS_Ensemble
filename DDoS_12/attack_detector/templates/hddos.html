@@ -1,0 +1,330 @@
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}DDOS{% endblock %}
+
+{% block content %}
+{% block tabs %}{% endblock %}
+<style>
+  .nav-link {
+    color: inherit; /* Remove default color */
+    text-decoration: none; /* Remove underline */
+  }
+
+  .nav-link.active {
+      color: inherit; /* Remove blue color for active link */
+  }
+
+  .nav-link:hover {
+      color: inherit; /* Remove blue color on hover */
+  }
+
+  @media (max-width: 768px) {
+    #attackTabs {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    #attackTabs .nav-item {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    #attackTabs .nav-link {
+      width: 100%;
+      text-align: center;
+      border-radius: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    #attackTabs .nav-link.active {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+  }
+  @media (max-width: 768px) {
+  #attackTabs {
+    margin-top: 0 !important;
+  }
+  body, #mainContent {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+  .burger-wrapper {
+    top: 0.5rem !important; /* keep button visible */
+  }
+}
+
+</style>
+
+<!-- Alpine.js & Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs me-5 mt-4 flex-wrap md:flex-nowrap gap-2 sticky top-0 z-40 shadow-sm" id="attackTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <b><button class="nav-link active" id="types-tab" data-bs-toggle="tab" data-bs-target="#types"
+      type="button" role="tab" aria-controls="types" aria-selected="true">Attack Types</button></b>
+  </li>
+  <li class="nav-item" role="presentation">
+    <b><button class="nav-link" id="explanation-tab" data-bs-toggle="tab" data-bs-target="#explanation"
+      type="button" role="tab" aria-controls="explanation" aria-selected="false">Attack Explanation</button></b>
+  </li>
+  <li class="nav-item" role="presentation">
+    <b><button class="nav-link" id="mitigation-tab" data-bs-toggle="tab" data-bs-target="#mitigation"
+      type="button" role="tab" aria-controls="mitigation" aria-selected="false">Mitigation Strategies</button></b>
+  </li>
+  <li class="nav-item" role="presentation">
+    <b><button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings"
+      type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button></b>
+  </li>
+</ul>
+
+
+<!-- Tab Content Wrapper -->
+<div class="tab-content mt-2 p-6" id="attackTabsContent">
+  <!-- Tab 1: Attack Types -->
+  <div class="tab-pane fade show active" id="types" role="tabpanel" aria-labelledby="types-tab" x-data="{ open: false }">
+    <div class="max-w-7xl mx-auto bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+      <header class="mb-6">
+        <h1 class="text-3xl font-bold tracking-widest">Understanding DoS & DDoS Attacks</h1>
+        <p class="text-cyan-400">Explore various types of attack vectors and how they impact networks.</p>
+      </header>
+    
+      <button @click="open = !open"
+        class="w-full bg-black/60 backdrop-blur rounded-xl p-6 shadow-lg mb-4 flex justify-between items-center transition-all">
+        <span class="text-lg font-semibold text-white">Attack Types</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform duration-300"
+          :class="open ? 'rotate-180' : 'rotate-0'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+    
+        <!-- Collapsible Cards -->
+        <div x-show="open" x-transition>
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Attack Cards (unchanged styles) -->
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">DDoS from Random IPs</h2>
+              <p class="text-gray-300">
+                Involves flooding the target with traffic from thousands of spoofed or infected IP addresses, making it difficult to block malicious sources and overwhelming the network or server.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">SYN Flood</h2>
+              <p class="text-gray-300">
+                Exploits the TCP handshake by sending numerous SYN requests without completing connections, overwhelming the target system.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">RST Attack</h2>
+              <p class="text-gray-300">
+                Sends forged TCP reset (RST) packets to terminate active connections, disrupting legitimate traffic flow.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">ACK Flood</h2>
+              <p class="text-gray-300">
+                Overloads networks by sending large numbers of TCP ACK packets, bypassing some firewalls and targeting bandwidth.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">FIN Flood</h2>
+              <p class="text-gray-300">
+                Bombards the server with TCP FIN packets, aiming to exhaust resources by tricking the system into closing connections.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-red-400">PSH Flood</h2>
+              <p class="text-gray-300">
+                Uses TCP PSH flags to force the server to process packets immediately, creating high CPU usage and service disruption.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-yellow-400">UDP Flood</h2>
+              <p class="text-gray-300">
+                Sends massive volumes of UDP packets to random ports, causing the target to repeatedly check for nonexistent applications.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-yellow-400">Fragmentation (FRAG) Attack</h2>
+              <p class="text-gray-300">
+                Breaks packets into smaller pieces to bypass security measures, potentially crashing target systems or consuming resources.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-yellow-400">ICMP Flood</h2>
+              <p class="text-gray-300">
+                Overwhelms the target with ICMP Echo Request (ping) packets, often used in smurf attacks to cause network congestion.
+              </p>
+            </div>
+    
+            <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+              <h2 class="text-xl font-semibold mb-2 text-green-400">Benign Traffic</h2>
+              <p class="text-gray-300">
+                Legitimate user activity such as web browsing, streaming, or downloading — used as a baseline to detect anomalies.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+  <!-- Section 2 Tab Pane -->
+  <div class="tab-pane fade" id="explanation" role="tabpanel" aria-labelledby="explanation-tab">
+    <div class="mt-4 text-white">
+      <div class="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+          <h2 class="text-2xl font-bold text-cyan-400 mb-4">Comprehensive Explanation of DoS and DDoS Attacks</h2>
+    
+          <p class="mb-4">
+            <strong>Denial of Service (DoS)</strong> is a type of cyberattack where a single machine or attacker attempts to overwhelm a service, server, or network by flooding it with excessive traffic or triggering resource exhaustion through specially crafted requests. The goal is to disrupt normal functionality and deny access to legitimate users.
+          </p>
+      
+          <p class="mb-4">
+            <strong>Distributed Denial of Service (DDoS)</strong> extends the concept by launching the attack from multiple devices—often part of a botnet (a network of infected devices controlled by the attacker). DDoS attacks are more difficult to detect and mitigate due to their distributed nature and massive scale.
+          </p>
+      
+          <h3 class="text-xl font-semibold text-cyan-300 mt-6 mb-2">Types of DoS/DDoS Attacks</h3>
+          <p class="text-gray-300 mb-2">DDoS and DoS attacks can be categorized into several types based on which part of the system they target:</p>
+      
+          <ul class="list-disc pl-5 text-gray-300 space-y-2">
+            <li>
+              <strong>Volumetric Attacks:</strong> These flood the network with massive amounts of traffic to saturate bandwidth. <br>
+              <span class="text-sm text-gray-400">Examples: UDP Flood, ICMP Flood, DNS Amplification</span>
+            </li>
+            <li>
+              <strong>Protocol Attacks:</strong> Exploit weaknesses in Layer 3 (network) and Layer 4 (transport) protocols to exhaust server resources or state tables in networking equipment.<br>
+              <span class="text-sm text-gray-400">Examples: SYN Flood, Ping of Death, Smurf Attack, Fragmentation Attack</span>
+            </li>
+            <li>
+              <strong>Application-Layer Attacks:</strong> Mimic legitimate user behavior to exhaust application resources such as CPU, memory, or database connections.<br>
+              <span class="text-sm text-gray-400">Examples: HTTP Flood, Slowloris, DNS Query Flood</span>
+            </li>
+          </ul>
+      
+          <h3 class="text-xl font-semibold text-cyan-300 mt-6 mb-2">Attack Techniques</h3>
+          <ul class="list-disc pl-5 text-gray-300 space-y-2">
+            <li><strong>Botnets:</strong> Networks of compromised devices used to launch DDoS attacks globally.</li>
+            <li><strong>Reflection & Amplification:</strong> Use vulnerable servers (e.g., DNS, NTP) to amplify traffic sent to the target.</li>
+            <li><strong>Spoofing:</strong> Attackers forge IP addresses to hide the source and complicate filtering.</li>
+          </ul>
+      
+          <h3 class="text-xl font-semibold text-cyan-300 mt-6 mb-2">Real-World Impact</h3>
+          <ul class="list-disc pl-5 text-gray-300 space-y-2">
+            <li><strong>Website Downtime:</strong> E-commerce, banks, and news outlets can suffer financial and reputational loss.</li>
+            <li><strong>Infrastructure Damage:</strong> Extended attacks can cause service instability or hardware stress.</li>
+            <li><strong>Security Diversion:</strong> DDoS attacks are sometimes used as distractions while attackers infiltrate other systems.</li>
+          </ul>
+      
+          <h3 class="text-xl font-semibold text-cyan-300 mt-6 mb-2">Mitigation Strategies</h3>
+          <ul class="list-disc pl-5 text-gray-300 space-y-2">
+            <li><strong>Rate Limiting:</strong> Restrict the number of requests from a user or IP in a given timeframe.</li>
+            <li><strong>Web Application Firewalls (WAF):</strong> Filter and monitor HTTP traffic to prevent app-layer attacks.</li>
+            <li><strong>Geo-Blocking & IP Blacklisting:</strong> Block traffic from known malicious IP ranges.</li>
+            <li><strong>Anycast Routing:</strong> Distribute traffic across global servers to absorb large-scale attacks.</li>
+            <li><strong>Third-party DDoS Protection Services:</strong> Services like Cloudflare, AWS Shield, or Akamai offer real-time detection and mitigation.</li>
+          </ul>
+      
+          <p class="mt-6 text-gray-400 italic">Understanding and mitigating DoS and DDoS attacks is essential to maintaining service availability and user trust in today’s internet-dependent world.</p>
+      </div>
+    </div>
+  </div>  
+
+  <!-- Tab 3: Mitigation Strategies -->
+  <div class="tab-pane fade" id="mitigation" role="tabpanel" aria-labelledby="mitigation-tab" x-data="{ open: false }">
+    <div class="max-w-7xl mx-auto bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+      <header class="mb-6">
+        <h1 class="text-3xl font-bold tracking-widest text-cyan-400">Mitigation Strategies for DoS & DDoS</h1>
+        <p class="text-gray-300">Explore advanced techniques to identify and block attacks effectively.</p>
+      </header>
+
+      <button @click="open = !open"
+        class="w-full bg-black/60 backdrop-blur rounded-xl p-6 shadow-lg mb-4 flex justify-between items-center transition-all">
+        <span class="text-lg font-semibold text-white">View Mitigation Techniques</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform duration-300"
+          :class="open ? 'rotate-180' : 'rotate-0'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <div x-show="open" x-transition>
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-300">
+
+          <!-- 1 -->
+          <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+            <img src="{% static 'images/firewall.png' %}" alt="Firewall" class="w-full h-40 object-contain mb-4 rounded-xl">
+            <h2 class="text-xl font-bold text-green-400 mb-2">1. Traffic Filtering & Rate Limiting</h2>
+            <p><strong>What it does:</strong> Filters out malicious traffic patterns before reaching critical services.</p>
+            <p><strong>How:</strong></p>
+            <ul class="list-disc pl-5">
+              <li>Use <code>iptables</code>, firewalls, or IPS to block suspicious/spoofed IPs.</li>
+              <li>Limit packets per second (PPS) per IP.</li>
+              <li>Drop malformed packets or protocol anomalies.</li>
+            </ul>
+          </div>
+
+          <!-- 2 -->
+          <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+            <img src="{% static 'images/ml_detection.jpg' %}" alt="Machine Learning" class="w-full h-40 object-contain mb-4 rounded-xl">
+            <h2 class="text-xl font-bold text-green-400 mb-2">2. Machine Learning-Based Anomaly Detection</h2>
+            <p><strong>What it does:</strong> Detects unusual traffic behavior using trained ML models.</p>
+            <p><strong>How:</strong></p>
+            <ul class="list-disc pl-5">
+              <li>Train ML models (e.g., Random Forest, XGBoost) on traffic features.</li>
+              <li>Use <code>PyShark</code> or <code>Scapy</code> to stream real-time data into the model.</li>
+              <li>Trigger alerts or blocks on abnormal spikes/repetitions.</li>
+            </ul>
+          </div>
+
+          <!-- 3 -->
+          <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+            <img src="{% static 'images/ip_block.png' %}" alt="IP Blacklist" class="w-full h-40 object-contain mb-4 rounded-xl">
+            <h2 class="text-xl font-bold text-green-400 mb-2">3. IP Blacklisting with Auto-Block</h2>
+            <p><strong>What it does:</strong> Blocks attacker IPs automatically after detection.</p>
+            <p><strong>How:</strong></p>
+            <ul class="list-disc pl-5">
+              <li>Store blocked IPs in Django's database.</li>
+              <li>Use Linux <code>iptables/ebtables</code> to enforce blocking.</li>
+              <li>Allow manual unblock/investigation from UI.</li>
+            </ul>
+          </div>
+
+          <!-- 4 -->
+          <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur">
+            <img src="{% static 'images/load_balancer.png' %}" alt="Load Balancer" class="w-full h-40 object-contain mb-4 rounded-xl">
+            <h2 class="text-xl font-bold text-green-400 mb-2">4. Rate-Based Load Balancing</h2>
+            <p><strong>What it does:</strong> Distributes traffic to reduce overload risk.</p>
+            <p><strong>How:</strong></p>
+            <ul class="list-disc pl-5">
+              <li>Set thresholds for CPU, memory, and packet rate.</li>
+              <li>Redirect excessive load to dummy servers or delay queues.</li>
+              <li>Use load balancers like <code>HAProxy</code> or <code>Nginx</code>.</li>
+            </ul>
+          </div>
+
+          <!-- 5 -->
+          <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur md:col-span-2">
+            <img src="{% static 'images/honeypot.png' %}" alt="Honeypot" class="w-full h-40 object-contain mb-4 rounded-xl">
+            <h2 class="text-xl font-bold text-green-400 mb-2">5. Honeypot Diversion & Trap Systems</h2>
+            <p><strong>What it does:</strong> Diverts suspicious traffic to decoy environments.</p>
+            <p><strong>How:</strong></p>
+            <ul class="list-disc pl-5">
+              <li>Deploy low-interaction honeypots simulating vulnerable services.</li>
+              <li>Route flagged traffic to honeypot for behavior analysis.</li>
+              <li>Use findings to enhance blacklist and mitigation rules.</li>
+            </ul>
+          </div>
+
+        </section>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

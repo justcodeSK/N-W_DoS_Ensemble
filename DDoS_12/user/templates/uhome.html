@@ -1,0 +1,374 @@
+{% extends 'user.html' %}
+{% load static %}
+{% block title %}User Home{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+      #shuffling-wrapper {
+        position: relative;
+        width: 980px;
+        height: 460px;
+        margin: 40px auto;
+    }
+
+    .tile.shuffle {
+        position: absolute !important;
+        width: 300px;
+        height: 200px;
+        transition: all 0.8s ease-in-out;
+        opacity: 1 !important;
+        transform: translate(0, 0);
+    }
+      #puzzle {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+        margin: auto;
+        max-width: 1280px;
+    }
+  .tile {
+    flex: 0 0 300px;
+    height: 200px;
+    background: rgba(59, 59, 59, 0.6);
+    backdrop-filter: blur(4px);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    transition: all 1s ease-in-out;
+    color: white;
+    overflow: hidden;
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+
+  .tile.large {
+    flex: 0 0 620px;
+    height: 260px;
+    z-index: 10;
+  }
+   .tile.extra-large {
+        flex: 0 0 950px;
+        height: 200px;
+    }
+
+  .tile h2 {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .tile p, .tile table {
+    font-size: 0.85rem;
+    color: #d1d5db;
+  }
+
+  .btn-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    background-color: #0ea5e9;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    text-align: center;
+    height: 100%;
+    width: 100%;
+  }
+
+  .btn-tile:hover {
+    background-color: #0284c7;
+  }
+  @media (max-width: 768px) {
+    #shuffling-wrapper {
+      width: 100%;
+      height: auto;
+      margin: 20px auto;
+    }
+
+    #puzzle {
+      flex-direction: column;
+      gap: 12px;
+      padding: 0 10px;
+    }
+
+    .tile,
+    .tile.large,
+    .tile.extra-large {
+      flex: 0 0 auto !important;
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+      min-height: 180px;
+      padding: 1rem;
+    }
+
+    .tile h2 {
+      font-size: 1rem;
+    }
+
+    .tile p,
+    .tile table {
+      font-size: 0.8rem;
+    }
+
+    .btn-tile {
+      font-size: 0.95rem;
+      padding: 0.75rem;
+      height: 150px;
+    }
+
+    table {
+      font-size: 0.75rem;
+    }
+
+    th, td {
+      padding: 6px !important;
+    }
+  }
+</style>
+
+<div class="min-h-screen bg-black/60 rounded-xl shadow-lg backdrop-blur text-white p-6">
+  
+
+  <!-- Puzzle Grid -->
+  <div id="puzzle">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-4xl font-extrabold tracking-widest text-white">Welcome to <span class="text-cyan-400">AttackNET ZERO</span></h1>
+        <div class="flex items-center ml-6 px-2 py-2 bg-gray-100 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-center w-8 h-8 bg-white rounded-full shadow-inner">
+                <i class="fas fa-user text-gray-600 text-sm"></i>
+            </div>
+            <div class="text-sm leading-tight">
+                <div class="text-gray-800 font-semibold uppercase px-2 py-2">{{ user_obj }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tile large" id="tile0"><h2>Traffic Flow (Last Hour)</h2><canvas id="trafficChart" height="100"></canvas></div>
+    <div class="tile text-2xl" id="tile10">
+              <i class="fa-solid fa-circle-check text-green-400 text-2xl px-2"></i> All systems operational. Last updated: <span id="last-updated" class="text-cyan-400">Just now</span>
+    </div>
+    <div class="tile" id="tile12"><a href="{% url 'nettraffic' %}" class="btn-tile">Run Manual Scan</a></div>
+    <div class="tile" id="tile13"><a href="{% url 'report' %}" class="btn-tile">View Full Report</a></div>
+    <div class="tile" id="tile14"><a href="{% url 'advreport' %}" class="btn-tile">Advanced Report</a></div>
+    <div class="tile extra-large" id="tile11">
+        <h2 class="text-xl font-semibold">Recent Threat Alerts</h2>
+        <table class="w-full text-left mt-2 border-collapse">
+            <thead>
+            <tr class="border-b">
+                <th class="py-1 px-2">Time</th>
+                <th class="py-1 px-2">Source IP</th>
+                <th class="py-1 px-2">Destination IP</th>
+                <th class="py-1 px-2">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for entry in recent_threats %}
+                <tr class="border-b hover:bg-gray-100 transition">
+                <td class="py-1 px-2">{{ entry.timestamp|time:"H:i" }}</td>
+                <td class="py-1 px-2">{{ entry.source_ip }}</td>
+                <td class="py-1 px-2">{{ entry.destination_ip }}</td>
+                <td class="py-1 px-2">
+                    {% if entry.action == "BLOCK" %}
+                    <span class="text-red-500 font-medium">Blocked</span>
+                    {% else %}
+                    <span class="text-green-500 font-medium">Unblocked</span>
+                    {% endif %}
+                </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center py-2 text-gray-500">No threat alerts yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="tile" id="tile1"><h2>Real-time Traffic Monitoring</h2><p class="text-gray-300">Live monitoring using PyShark and packet inspection.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Continuously captures and analyzes packets in real time using PyShark. Enables proactive anomaly detection and flow tracking.
+              </div>
+    </div>
+    <div class="tile" id="tile2"><h2>Save Traffic as CSV</h2><p class="text-gray-300">Export captured traffic into CSV format.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Store traffic data locally for offline analysis, model training, or compliance auditing.
+              </div>
+    </div>
+    <div class="tile" id="tile3"><h2>Label Traffic for ML</h2><p class="text-gray-300">Assign labels to captured data for ML pipelines.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Label traffic as normal or attack to build datasets for supervised learning and anomaly detection models.
+              </div>
+    </div>
+    <div class="tile" id="tile4"><h2>Live Graphical Analysis</h2><p class="text-gray-300">Visualize BPS, PPS and traffic trends.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Real-time graphing of packet size, bits per second, and packets per second to detect usage spikes and anomalies.
+              </div>
+    </div>
+    <div class="tile" id="tile5"><h2>Interface & IP Filter</h2><p class="text-gray-300">Choose interface & filter by destination IP.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Select specific network interfaces (WiFi, Ethernet, Bluetooth, Loopback) and filter traffic based on destination IP addresses.
+              </div></div>
+    <div class="tile" id="tile6"><h2>ML-based Detection</h2><p class="text-gray-300">Detect DoS/DDoS manually and in real-time.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Use machine learning models for on-demand or live detection of malicious traffic with full monitoring context.
+              </div>
+    </div>
+    <div class="tile" id="tile7"><h2>CSV Viewer & Editor</h2><p class="text-gray-300">Upload, view, edit, and download traffic CSV.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Open CSV traffic files, edit entries, copy sections, and save updated datasets for further processing.
+              </div>
+    </div>
+    <div class="tile" id="tile8"><h2>Traffic Graph Dashboard</h2><p class="text-gray-300">Analyze spikes and traffic shifts.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Real-time dashboard for inspecting traffic spike trends, anomaly intervals, and peak activity for proactive response.
+              </div>
+    </div>
+    <div class="tile" id="tile9"><h2>Email Alert Notification</h2><p class="text-gray-300">Send email to the user when an attack is detected.</p>
+              <div class="mt-2 text-sm text-gray-400">
+                Automatically notify the user via email when a potential DoS or DDoS attack is identified by the detection system. Includes traffic summary and threat metadata.
+              </div>
+    </div>
+  </div>
+</div>
+<!-- Tips Panel -->
+  <div x-data="{ tips: [
+      'Set thresholds for suspicious packet bursts to catch DoS attacks early.',
+      'Whitelist safe IPs to reduce false positives.',
+      'Monitor during off-peak hours to detect stealthy attacks.'
+    ], index: 0 }" x-init="setInterval(() => index = (index + 1) % tips.length, 1000)" class="mt-10 p-4 rounded-xl bg-gray-800 text-white text-sm">
+    💡 <span x-text="tips[index]"></span>
+  </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const tileGroups = [
+    ["tile4"],
+    ["tile0", "tile1", "tile2", "tile3", "tile5", "tile6", "tile7", "tile8", "tile9", "tile10", "tile12", "tile13", "tile14"],
+    ["tile11"]
+  ];
+
+  const allTiles = document.querySelectorAll('.tile');
+
+  allTiles.forEach(tile => {
+    const x = Math.random() * 500 - 250;
+    const y = Math.random() * 400 - 200;
+    tile.style.transform = `translate(${x}px, ${y}px)`;
+    tile.style.opacity = 0;
+  });
+
+  tileGroups.forEach((group, idx) => {
+    setTimeout(() => {
+      group.forEach(id => {
+        const tile = document.getElementById(id);
+        tile.style.transform = 'translate(0, 0)';
+        tile.style.opacity = 1;
+      });
+    }, 300 * (idx + 1));
+  });
+});
+
+ const LAST_VISIT_KEY = "lastVisitTimestamp";
+
+  function formatTimestamp(timestamp) {
+    const date = new Date(parseInt(timestamp));
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
+    return `${day}/${month}/${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+  }
+  document.addEventListener("DOMContentLoaded", () => {
+    const lastUpdatedElem = document.getElementById("last-updated");
+    const lastVisit = localStorage.getItem(LAST_VISIT_KEY);
+
+    if (lastVisit && !isNaN(parseInt(lastVisit))) {
+      lastUpdatedElem.textContent = formatTimestamp(lastVisit);
+    } else {
+      lastUpdatedElem.textContent = "First visit";
+    }
+
+    // Save current time for future visits
+    localStorage.setItem(LAST_VISIT_KEY, Date.now().toString());
+  });
+
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const ctx = document.getElementById('trafficChart');
+  if (!ctx) return;
+
+  const realtimeGraph = localStorage.getItem("cachedRealtimeGraphData");
+  const fallbackGraph = localStorage.getItem("cachedGraphData");
+
+  const source = realtimeGraph ? JSON.parse(realtimeGraph) : (fallbackGraph ? JSON.parse(fallbackGraph) : null);
+  if (!source) return;
+
+  const labels = source.labels || [];
+  const packetSizes = source.datasets?.[0]?.data || [];
+  const ppsValues = source.datasets?.[1]?.data || [];
+  const bpsValues = source.datasets?.[2]?.data || [];
+
+  new Chart(ctx.getContext("2d"), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Packet Size (Bytes)',
+            data: packetSizes,
+            borderColor: 'rgb(59, 130, 246)',
+            tension: 0.3,
+            fill: false
+          },
+          {
+            label: 'PPS',
+            data: ppsValues,
+            borderColor: 'rgb(34, 197, 94)',
+            tension: 0.3,
+            fill: false
+          },
+          {
+            label: 'BPS',
+            data: bpsValues,
+            borderColor: 'rgb(239, 68, 68)',
+            tension: 0.3,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: { color: 'white' }
+          }
+        },
+        scales: {
+          x: { ticks: { color: 'white' } },
+          y: {
+            ticks: {
+              color: 'white',
+              callback: value => {
+                if (value >= 1e9) return (value / 1e9).toFixed(1) + ' GB';
+                if (value >= 1e6) return (value / 1e6).toFixed(1) + ' MB';
+                if (value >= 1e3) return (value / 1e3).toFixed(1) + ' KB';
+                return value + ' B';
+              }
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

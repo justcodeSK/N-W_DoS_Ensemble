@@ -1,0 +1,705 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <script>
+   const s = JSON.parse(localStorage.getItem("sidebarAccessSettings") || "{}");
+    document.write(`<style>
+      ${s.toggleAbout === false ? '#btnAbout{display:none !important;}' : ''}
+      ${s.toggleTraffic === false ? '#btnTraffic{display:none !important;}' : ''}
+      ${s.toggleCSV === false ? '#btnCSV{display:none !important;}' : ''}
+      ${s.toggleDetection === false ? '#btnDetection{display:none !important;}' : ''}
+      ${s.toggleGraphs === false ? '#btnGraphs{display:none !important;}' : ''}
+      ${s.toggleIptracker === false ? '#btniptracker{display:none !important;}' : ''}
+    </style>`);
+  </script>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   {% block title %}Nav Bar{% endblock %}
+  </title>
+<!-- Chart.js (for graphs) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- html2canvas (for rendering DOM to canvas for PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- jsPDF (to generate PDF files) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet"/>
+  <link href="{% static 'css/app2/styles.css' %}" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet"/>
+  <!-- Include Alpine.js -->
+  <script defer="" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+  <style>
+   html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    #mainContent {
+      height: 100vh;
+      overflow-y: auto;
+    }
+  
+    @media (max-width: 768px) {
+      .sidebar-btn {
+        padding: 0.5rem !important;
+      }
+      .content-section {
+        padding: 1rem;
+      }
+      .text-3xl {
+        font-size: 1.5rem !important;
+      }
+      .text-xl {
+        font-size: 1.125rem !important;
+      }
+      .p-6 {
+        padding: 1rem !important;
+      }
+      .grid-cols-1.md\:grid-cols-3 {
+        grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+      }
+      aside {
+        background-color: rgba(0, 0, 0, 0.85) !important;
+        position: fixed !important;
+        top: 0;
+        z-index: 50;
+      }
+      #mainContent {
+        padding-top: 4rem !important;
+      }
+      .nav-tabs{
+        padding-left: 40px;
+      }
+    }
+  
+    @media (min-width: 769px) {
+      #mainContent {
+        padding-top: 0 !important;
+      }
+    }
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
+  <script>
+   window.addEventListener('load', () => {
+      const main = document.getElementById('mainContent');
+      main.classList.remove('opacity-0', 'translate-x-10');
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const buttons = document.querySelectorAll(".sidebar-btn");
+      const navButtons = Array.from(buttons).slice(0, -1);
+      const activeButtonIndex = parseInt(localStorage.getItem("activeSidebarIndex"), 10);
+      navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+      if (!isNaN(activeButtonIndex) && navButtons[activeButtonIndex]) {
+        navButtons[activeButtonIndex].classList.add("bg-cyan-500");
+      } else {
+        navButtons[0]?.classList.add("bg-cyan-500");
+      }
+      navButtons.forEach((button, index) => {
+        button.addEventListener("click", function () {
+          navButtons.forEach(btn => btn.classList.remove("bg-cyan-500"));
+          button.classList.add("bg-cyan-500");
+          localStorage.setItem("activeSidebarIndex", index);
+        });
+      });
+    });
+  </script>
+ </head>
+ <body class="bg-[#0f1a1c] text-white min-h-screen font-sans">
+  <div class="flex flex-col md:flex-row">
+   <!-- Sidebar -->
+    <div x-data="{ open: false, activeSubMenu: '' }" class="md:relative z-50">
+
+      <!-- 🍔 Burger Button -->
+      <div class="burger-wrapper md:hidden fixed top-4 left-4 z-50">
+        <button @click="open = !open"
+                class="flex flex-col justify-center items-center w-10 h-10 bg-black/40 backdrop-blur-sm rounded-full shadow-md">
+          <div :class="open ? 'rotate-45 translate-y-[6px]' : ''"
+              class="w-6 h-0.5 bg-white mb-1 transition-all"></div>
+          <div :class="open ? 'opacity-0' : ''"
+              class="w-6 h-0.5 bg-white mb-1 transition-all"></div>
+          <div :class="open ? '-rotate-45 -translate-y-[6px]' : ''"
+              class="w-6 h-0.5 bg-white transition-all"></div>
+        </button>
+      </div>
+
+      <!-- 🔲 Backdrop -->
+      <div x-show="open" @click="open = false" x-transition
+          class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden" x-cloak>
+      </div>
+
+      <!-- 🟥 Sidebar -->
+      <aside :class="open ? 'translate-x-0' : '-translate-x-full'"
+            class="fixed md:relative top-0 left-0 w-48 md:w-16 bg-black/40 backdrop-blur-sm h-screen flex flex-col items-center py-6 space-y-4 transform transition-transform duration-300 md:translate-x-0 z-40">
+
+        <!-- Static Buttons -->
+        <div id="btnAbout" class="flex justify-center w-full">
+          <a href="{% url 'uhome' %}">
+            <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition" title="About">
+              <i class="fa-solid fa-user-secret text-black text-2xl"></i>
+            </button>
+          </a>
+        </div>
+
+        <div id="btnTraffic" class="flex justify-center w-full">
+          <a href="{% url 'nettraffic' %}">
+            <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition" title="Traffic">
+              <i class="fa-solid fa-diagram-project text-black text-2xl"></i>
+            </button>
+          </a>
+        </div>
+
+        <!-- Detection Submenu -->
+        <div id="btnDetection" class="relative w-full flex flex-col items-center">
+          <button @click="activeSubMenu = activeSubMenu === 'detection' ? '' : 'detection'"
+                  class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition"
+                  title="Detection">
+            <i class="fas fa-shield-halved text-black text-2xl"></i>
+          </button>
+          <div x-show="activeSubMenu === 'detection'"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0 -translate-y-2"
+              x-transition:enter-end="opacity-100 translate-y-0"
+              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave-start="opacity-100 translate-y-0"
+              x-transition:leave-end="opacity-0 -translate-y-2"
+              x-cloak
+              class="mt-2 w-full px-4 flex flex-col items-center space-y-2 md:absolute md:left-16 md:top-0 md:px-0">
+            <a href="{% url 'hddos' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-cyan-500"><i class="fas fa-circle-info text-black text-2xl"></i></button></a>
+            <a href="{% url 'manual' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-cyan-500"><i class="fas fa-sliders text-black text-2xl"></i></button></a>
+            <a href="{% url 'realtime' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-cyan-500"><i class="fas fa-clock text-black text-2xl"></i></button></a>
+            <a href="{% url 'ipcontrol' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-cyan-500"><i class="fa-solid fa-ban text-black text-2xl"></i></button></a>
+          </div>
+        </div>
+
+        <!-- CSV Submenu -->
+        <div id="btnCSV" class="relative w-full flex flex-col items-center">
+          <button @click="activeSubMenu = activeSubMenu === 'csv' ? '' : 'csv'"
+                  class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition"
+                  title="CSV Viewer">
+            <i class="fas fa-file-csv text-black text-2xl"></i>
+          </button>
+          <div x-show="activeSubMenu === 'csv'"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0 -translate-y-2"
+              x-transition:enter-end="opacity-100 translate-y-0"
+              x-transition:leave="transition ease-in duration-200"
+              x-transition:leave-start="opacity-100 translate-y-0"
+              x-transition:leave-end="opacity-0 -translate-y-2"
+              x-cloak
+              class="mt-2 w-full px-4 flex flex-col items-center space-y-2 md:absolute md:left-16 md:top-0 md:px-0">
+            <a href="{% url 'csv' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-yellow-400"><i class="fas fa-pen text-black text-2xl"></i></button></a>
+            <a href="{% url 'csvmerger' %}"><button class="w-14 h-14 rounded-full bg-gray-500 hover:bg-green-400"><i class="fas fa-object-group text-black text-2xl"></i></button></a>
+          </div>
+        </div>
+
+        <!-- IP Tracker -->
+        <div id="btniptracker" class="flex justify-center w-full">
+          <a href="{% url 'iptracker' %}">
+            <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition" title="IP Tracker">
+              <i class="fa-solid fa-location-crosshairs text-black text-2xl"></i>
+            </button>
+          </a>
+        </div>
+
+        <!-- Graphs -->
+        <div id="btnGraphs" class="flex justify-center w-full">
+          <a href="{% url 'charts' %}">
+            <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-cyan-500 transition" title="Charts">
+              <i class="fas fa-square-poll-vertical text-black text-2xl"></i>
+            </button>
+          </a>
+        </div>
+
+        <!-- Logout -->
+        <div class="flex justify-center w-full">
+          <a href="{% url 'logout' %}">
+            <button class="sidebar-btn w-14 h-14 rounded-full bg-gray-900 hover:bg-red-500 transition" title="Logout">
+              <i class="fas fa-sign-out-alt text-black text-2xl"></i>
+            </button>
+          </a>
+        </div>
+
+      </aside>
+    </div>
+
+   <!-- Background and Content -->
+   <div class="relative z-10 w-full">
+    <div class="fixed inset-0 z-0 bg-[url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=1350&amp;q=80')] bg-cover bg-center bg-blend-overlay bg-black/70">
+    </div>
+    <div class="relative z-10 w-full min-h-screen overflow-auto">
+     <main class="p-6 md:pl-[4.5rem] md:pr-6 opacity-0 translate-x-10 transition-all duration-700" id="mainContent">
+      <div class="max-w-screen-xl mx-auto">
+       {% block tabs %}
+       <!-- Styles -->
+        <style>
+          .nav-link {
+            color: inherit;
+            text-decoration: none;
+          }
+          .nav-link.active,
+          .nav-link:hover {
+            color: inherit;
+          }
+
+          @media (max-width: 768px) {
+            #mainContent {
+              padding-top: 0 !important;
+            }
+            #pageTab {
+              flex-direction: column !important;
+              align-items: stretch !important;
+            }
+            #pageTab .nav-item {
+              width: 100%;
+              margin-bottom: 0.5rem;
+            }
+            #pageTab .nav-link {
+              width: 100%;
+              text-align: center;
+              border-radius: 0.5rem;
+              background-color: rgba(255, 255, 255, 0.1);
+            }
+            #pageTab .nav-link.active {
+              background-color: rgba(255, 255, 255, 0.2);
+            }
+          }
+        </style>
+
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs mt-4 me-5 flex-wrap md:flex-nowrap gap-2 sticky top-0 z-40 shadow-sm" id="pageTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <b>
+              <button aria-controls="attacknet" aria-selected="true" class="nav-link active" data-bs-target="#attacknet" data-bs-toggle="tab" id="attacknet-tab" role="tab" type="button">
+                AttackNET ZERO
+              </button>
+            </b>
+          </li>
+          <li class="nav-item" role="presentation">
+            <b>
+              <button aria-controls="settings" aria-selected="false" class="nav-link" data-bs-target="#settings" data-bs-toggle="tab" id="settings-tab" role="tab" type="button">
+                Settings
+              </button>
+            </b>
+          </li>
+        </ul>
+       {% endblock %}
+       <!-- Tab Content -->
+       <div class="tab-content rounded-xl shadow-lg mt-2" id="pageTabContent">
+        <div aria-labelledby="attacknet-tab" class="tab-pane fade show active" id="attacknet" role="tabpanel" x-data="{ open: false }">
+         {% block content %}
+                
+         {% endblock %}
+        </div>
+        <!-- Settings Section -->
+        <div aria-labelledby="settings-tab" class="tab-pane fade" id="settings" role="tabpanel">
+         <div class="max-w-7xl mx-auto w-full">
+          <div class="bg-black/60 p-6 rounded-xl shadow-lg backdrop-blur">
+            <a href="{% url 'versions' %}">
+              <div class="flex items-center justify-between bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-4 rounded-lg shadow-md hover:shadow-xl transition">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      Check Out Our Popular Plans!
+                    </h2>
+                    <p class="text-sm">
+                      Unlock premium features with our top-rated plans.
+                    </p>
+                  </div>
+                  <a class="bg-black text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-100 transition" href="{% url 'versions' %}">
+                  View Plans →
+                  </a>
+              </div>
+            </a>
+           <!-- Toggle Edit -->
+            <div class="flex items-center mb-4 mt-6">
+              <input class="mr-2" id="enableEdit" type="checkbox"/>
+              <label class="text-lg font-semibold" for="enableEdit">Enable Edit</label>
+            </div>
+
+            <!-- User Profile Update Form -->
+            <form class="space-y-4" id="SignupForm" method="POST" action="{% url 'user' %}">
+              {% csrf_token %}
+              <input type="hidden" name="uid" value="{{ user_obj.id|default:'' }}">
+
+              <!-- Name Fields -->
+              <div class="flex gap-4">
+                <div class="w-1/2">
+                  <label class="block font-semibold">First Name</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="fname" id="fname"
+                        type="text" readonly
+                        value="{{ user_obj.Fname|default:'' }}" required />
+                </div>
+                <div class="w-1/2">
+                  <label class="block font-semibold">Last Name</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="lname" id="lname"
+                        type="text" readonly
+                        value="{{ user_obj.Lname|default:'' }}" required />
+                </div>
+              </div>
+
+              <!-- DOB and Age -->
+              <div class="flex gap-4">
+                <div class="w-1/2">
+                  <label class="block font-semibold">Date of Birth</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="dob" id="dob"
+                        type="date" readonly
+                        value="{{ user_obj.Dob|date:'Y-m-d'|default:'' }}" required />
+                </div>
+                <div class="w-1/2">
+                  <label class="block font-semibold">Age</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="age" id="age"
+                        type="text" readonly
+                        value="{{ user_obj.Age|default:'' }}" required />
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div>
+                <label class="block font-semibold">Email</label>
+                <input class="w-full p-2 rounded bg-gray-800 text-white"
+                      name="email" id="email"
+                      type="email" readonly
+                      value="{{ user_obj.Email|default:'' }}" required />
+              </div>
+
+              <!-- Current Password -->
+              <div class="flex gap-4 items-end">
+                <div class="w-full">
+                  <label class="block font-semibold">Current Password</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="old_password" id="old_password"
+                        type="password" placeholder="Password Verification" readonly />
+                </div>
+
+                <!-- Verify Button -->
+                <button type="button" id="verifyBtn"
+                        class="btn btn-warning h-10 w-10 flex items-center justify-center rounded"
+                        onclick="verifyOldPassword()" disabled>
+                  <i class="fa-solid fa-circle-check text-black text-2xl"></i>
+                </button>
+
+                <!-- Loading Spinner (initially hidden) -->
+                <div id="loading-spinner" class="hidden flex items-center justify-center h-10 w-10">
+                  <i class="fas fa-spinner fa-spin text-yellow-400 text-2xl"></i>
+                </div>
+              </div>
+
+              <p id="password-error" class="text-red-500 text-sm hidden">Incorrect current password.</p>
+
+              <!-- New Password Section (initially hidden) -->
+              <div id="new-password-section" class="flex gap-4 hidden">
+                <div class="w-1/2">
+                  <label class="block font-semibold">New Password</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="password" id="password"
+                        type="password" placeholder="Change Current Password" />
+                </div>
+                <div class="w-1/2">
+                  <label class="block font-semibold">Confirm Password</label>
+                  <input class="w-full p-2 rounded bg-gray-800 text-white"
+                        name="cpassword" id="cpassword"
+                        type="password" placeholder="Confirm Password" />
+                </div>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="pt-4">
+                <button type="submit" class="btn btn-info h-10 w-10 flex items-center justify-center rounded" id="signin" disabled>
+                  <i class="fa-solid fa-circle-check text-2xl"></i>
+                </button>
+              </div>
+            </form>
+
+           <!-- Access Options -->
+            <div class="pt-4 border-t border-gray-700 mt-4">
+             <div class="flex justify-between items-center mb-2">
+              <h2 class="font-bold">
+               Access Options
+              </h2>
+              <div class="flex items-center gap-4">
+               <button class="text-sm text-red-400 underline hover:text-red-600" id="clearCacheBtn">
+                Clear Cache
+               </button>
+               <div class="w-px h-4 bg-gray-500">
+               </div>
+               <button class="text-sm text-blue-400 underline hover:text-blue-600" id="reloadPageBtn">
+                <i class="fa-solid fa-rotate text-white">
+                </i>
+               </button>
+              </div>
+             </div>
+            </div>
+           <div class="grid grid-cols-2 gap-4" id="accessOptions">
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleAbout" type="checkbox"/>
+                About
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleTraffic" type="checkbox"/>
+                Traffic Monitoring
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleCSV" type="checkbox"/>
+                CSV Viewer
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleDetection" type="checkbox"/>
+                Detection
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleIptracker" type="checkbox"/>
+                IP Tracker
+                </label>
+                <label class="flex items-center gap-2">
+                <input checked="" class="accent-blue-500" id="toggleGraphs" type="checkbox"/>
+                Graphs
+                </label>
+             </div>
+          </div>
+         </div>
+        </div>
+       </div>
+       <!-- JavaScript Logic -->
+       <script>
+        const signupBtn = document.getElementById("signin");
+              const email = document.getElementById("email");
+              const password = document.getElementById("password");
+              const cpassword = document.getElementById("cpassword");
+              const dob = document.getElementById("dob");
+              const age = document.getElementById("age");
+              const emailError = document.getElementById("emailError");
+              const ageError = document.getElementById("ageError");
+
+              function validateSignup() {
+                const validEmail = email.value.includes("@");
+                const pwMatch = password.value && password.value === cpassword.value;
+                const dobSelected = dob.value !== "";
+                const ageValid = parseInt(age.value) >= 18;
+
+                emailError.style.display = validEmail ? "none" : "block";
+                ageError.style.display = ageValid ? "none" : "block";
+
+                signupBtn.disabled = !(validEmail && pwMatch && dobSelected && ageValid);
+              }
+
+              function calculateAge() {
+                const dobValue = dob.value;
+                if (dobValue) {
+                  const birthDate = new Date(dobValue);
+                  const today = new Date();
+                  let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+                  const m = today.getMonth() - birthDate.getMonth();
+                  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    calculatedAge--;
+                  }
+                  age.value = calculatedAge;
+                } else {
+                  age.value = "";
+                }
+                validateSignup();
+              }
+
+              email.addEventListener("input", validateSignup);
+              password.addEventListener("input", validateSignup);
+              cpassword.addEventListener("input", validateSignup);
+              dob.addEventListener("change", calculateAge);
+
+
+              document.getElementById("SignupForm").addEventListener("submit", (e) => {
+                console.log("Signup:", {
+                  fname: document.getElementById("fname").value,
+                  lname: document.getElementById("lname").value,
+                  email: email.value,
+                  dob: dob.value,
+                  age: age.value,
+                  password: password.value,
+                });
+              });
+
+              // navbar dissapear code 
+              // <!-- Toggle Sidebar Visibility Script -->
+              const toggleSettings = [
+                { checkboxId: 'toggleAbout', btnId: 'btnAbout', key: 'toggleAbout' },
+                { checkboxId: 'toggleTraffic', btnId: 'btnTraffic', key: 'toggleTraffic' },
+                { checkboxId: 'toggleCSV', btnId: 'btnCSV', key: 'toggleCSV' },
+                { checkboxId: 'toggleDetection', btnId: 'btnDetection', key: 'toggleDetection' },
+                { checkboxId: 'toggleGraphs', btnId: 'btnGraphs', key: 'toggleGraphs' },
+                { checkboxId: 'toggleIptracker', btnId: 'btniptracker', key: 'toggleIptracker' },
+              ];
+
+              const LOCAL_STORAGE_KEY = "sidebarAccessSettings";
+
+              function saveSettings() {
+                const settings = {};
+                toggleSettings.forEach(({ checkboxId, key }) => {
+                  const cb = document.getElementById(checkboxId);
+                  if (cb) settings[key] = cb.checked;
+                });
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
+              }
+
+              function loadSettings() {
+                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (saved) {
+                  try {
+                    const parsed = JSON.parse(saved);
+                    toggleSettings.forEach(({ checkboxId, key }) => {
+                      const cb = document.getElementById(checkboxId);
+                      if (cb && parsed.hasOwnProperty(key)) {
+                        cb.checked = parsed[key];
+                      }
+                    });
+                  } catch (e) {
+                    console.error("Failed to parse sidebar settings:", e);
+                  }
+                }
+              }
+
+              function updateSidebarVisibility() {
+                const settings = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+                toggleSettings.forEach(({ btnId, key }) => {
+                  const btn = document.getElementById(btnId);
+                  const isVisible = settings[key] !== false;
+                  if (btn) btn.style.display = isVisible ? "flex" : "none";
+                });
+              }
+
+                            
+              function setupSidebarToggles() {
+                toggleSettings.forEach(({ checkboxId, btnId, key }) => {
+                  const cb = document.getElementById(checkboxId);
+                  const btn = document.getElementById(btnId);
+                  if (cb && btn) {
+                    cb.addEventListener("change", () => {
+                      const isChecked = cb.checked;
+                      btn.style.display = isChecked ? "flex" : "none";
+
+                      const currentSettings = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+                      currentSettings[key] = isChecked;
+                      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentSettings));
+                    });
+                  }
+                });
+              }
+
+
+              function clearSidebarCache() {
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+                location.reload(); // Resets all settings and shows all buttons
+              }
+
+              document.addEventListener("DOMContentLoaded", () => {
+                loadSettings();
+                updateSidebarVisibility();
+                setupSidebarToggles();
+                const clearBtn = document.getElementById("clearCacheBtn");
+                if (clearBtn) clearBtn.addEventListener("click", clearSidebarCache);
+              });
+
+              // reload button
+                document.addEventListener("DOMContentLoaded", () => {
+                  const reloadBtn = document.getElementById("reloadPageBtn");
+                  if (reloadBtn) {
+                    reloadBtn.addEventListener("click", () => {
+                      location.reload();
+                    });
+                  }
+                });
+                // code for enabled
+                document.addEventListener("DOMContentLoaded", function () {
+                  const enableEditCheckbox = document.getElementById('enableEdit');
+                  const formInputs = document.querySelectorAll('#SignupForm input');
+                  const formButtons = document.querySelectorAll('#SignupForm button');
+                  const submitBtn = document.getElementById('signin');
+
+                  enableEditCheckbox.addEventListener('change', function () {
+                    const enabled = this.checked;
+
+                    // Toggle input fields
+                    formInputs.forEach(input => {
+                      if (input.type !== 'hidden' && input.type !== 'checkbox') {
+                        input.readOnly = !enabled;
+                        input.classList.toggle('bg-gray-800', !enabled);
+                        input.classList.toggle('bg-white', enabled);
+                        input.classList.toggle('text-white', !enabled);
+                        input.classList.toggle('text-black', enabled);
+                      }
+                    });
+
+                    // Toggle buttons (except hidden and submit)
+                    formButtons.forEach(button => {
+                      button.disabled = !enabled;
+                      button.classList.toggle('opacity-50', !enabled); // optional style for visual feedback
+                      button.classList.toggle('cursor-not-allowed', !enabled);
+                    });
+                  });
+                });
+
+
+                // globally defined for password to get editted 
+                function verifyOldPassword() {
+                  const oldPassword = document.getElementById("old_password").value;
+                  const spinner = document.getElementById("loading-spinner");
+                  const verifyBtn = document.getElementById("verifyBtn");
+                  const errorText = document.getElementById("password-error");
+                  const newPassSection = document.getElementById("new-password-section");
+
+                  // Show spinner and disable button
+                  spinner.classList.remove("hidden");
+                  verifyBtn.disabled = true;
+                  errorText.classList.add("hidden");
+
+                  fetch("{% url 'verify_password' %}", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: JSON.stringify({ old_password: oldPassword }),
+                  })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (data.valid) {
+                      newPassSection.classList.remove("hidden");
+                    } else {
+                      newPassSection.classList.add("hidden");
+                      errorText.classList.remove("hidden");
+                    }
+                  })
+                  .catch(() => {
+                    alert("An error occurred while verifying password.");
+                  })
+                  .finally(() => {
+                    spinner.classList.add("hidden");
+                    verifyBtn.disabled = false;
+                  });
+                }
+
+       </script>
+      </div>
+     </main>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

@@ -1,0 +1,847 @@
+{% extends 'user.html' %}
+{% block title %}Realtime Attack Detection System{% endblock %}
+
+{% block content %}
+<style>
+  .attack-row td {
+  background-color: #6e0000 !important;
+  color: white !important;
+}
+
+.attack-row {
+    background-color: #6e0000 !important;
+    color: white !important;
+  }
+  .blocked-ip {
+    background-color: #990000 !important;
+    color: white !important;
+  }
+
+  /* Responsive layout */
+  @media (max-width: 768px) {
+    .table-responsive {
+      max-height: 350px; /* Limit height to 400px (you can adjust this) */
+      overflow: auto;     /* Enables both vertical and horizontal scrollbars inside the table */
+      overflow-x: auto;
+    }
+
+    .floating-body,
+    .floating-header {
+      font-size: 14px;
+    }
+
+    #floatingWindow {
+      width: 90% !important;
+      height: 250px !important;
+      left: 5% !important;
+    }
+
+    .form-control, .form-select, .btn {
+      font-size: 14px;
+      padding: 8px 12px;
+    }
+
+    .btn i {
+      margin-right: 4px;
+    }
+  }
+  .table-responsive {
+    max-height: 350px; /* Limit height to 400px (you can adjust this) */
+    overflow: auto;     /* Enables both vertical and horizontal scrollbars inside the table */
+    overflow-x: auto;
+  }
+
+  /* Maintain existing styles */
+  #robostyle {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-family: 'Orbitron', 'Roboto Mono', monospace;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  #floatingWindow {
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    width: 500px;
+    height: 300px;
+    background: white;
+    border: 2px solid #007bff;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    display: none;
+    z-index: 1050;
+  }
+
+  .floating-header {
+    background: #007bff;
+    color: white;
+    padding: 10px;
+    cursor: grab;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .floating-body {
+    padding: 10px;
+    height: calc(100% - 40px);
+    overflow: hidden;
+  }
+
+  .close-btn {
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+  }
+
+  #floatingWindow canvas {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
+  .resizer {
+    width: 15px;
+    height: 15px;
+    background: #007bff;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+    border-bottom-right-radius: 10px;
+  }
+
+  .table-dark th,
+  .table-dark td {
+    color: #e0e0e0;
+    border-color: #333;
+    white-space: nowrap;
+  }
+
+  .table-hover tbody tr:hover {
+    background-color: #222 !important;
+  }
+
+  .card {
+    background-color: transparent;
+    color: #e0e0e0;
+    border-radius: 10px;
+  }
+
+  select {
+    background-color: #222;
+    color: #e0e0e0;
+    border: none;
+    padding: 5px;
+    border-radius: 5px;
+    width: 100%;
+    max-width: 250px;
+  }
+</style>
+<main>
+<!--Trafficmonitoring Content Sections -->
+<div class="content-section" id="user">
+<div>
+<header class="mb-6">
+<h1 class="text-3xl font-bold tracking-widest">Realtime Attack Detection System</h1>
+</header>
+<p class="text-white mb-3">A real-time DDoS detection dashboard that highlights malicious packets in red and displays live traffic metrics with IP filtering and network interface selection.
+  </p>
+<section class="grid grid-cols-1 md:grid-cols-1 gap-6">
+<!-- Card 1 -->
+<div class="card mb-4 h-100 backdrop-blur">
+<div class="card-header bg-dark text-white">
+<i class="fas fa-table me-1">
+</i>
+     Network Packet Details
+    </div>
+<div class="card shadow-lg h-100">
+<div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+<!-- Control Panel -->
+<div class="container mt-4">
+<!-- Control Panel using Flex -->
+<div class="flex flex-wrap gap-2 justify-center mt-4">
+<!-- Dynamic Serial No. / Packet Count Display -->
+<div class="text-white font-semibold px-4 py-2 bg-dark rounded shadow" id="packetCountDisplay">
+<span id="packetCount">0</span>
+</div>
+<!-- IP Filter Input -->
+<div class="flex flex-wrap items-center gap-2">
+<label class="font-bold text-white" for="ipFilterInput">Filter:</label>
+<input class="form-control w-48" id="ipFilterInput" placeholder="Enter System IP" type="text"/>
+<button class="btn btn-info" id="submitIpBtn">
+<i class="fa-solid fa-check"></i>
+</button>
+</div>
+<!-- Interface Dropdown -->
+<div>
+<select class="form-select w-48" id="interfaceSelect">
+<option disabled="" hidden="" selected="" value="">Select Network Interface:</option>
+                  {% for iface in interfaces %}
+                    <option value="{{ iface }}">{{ iface }}</option>
+                  {% endfor %}
+                </select>
+</div>
+<!-- Action Buttons -->
+<button class="btn btn-info" id="startBtn" onclick="startMonitoring()">
+<i class="fa-solid fa-play"></i>
+</button>
+<button class="btn btn-info" disabled="" id="stopBtn" onclick="stopMonitoring()">
+<i class="fa-solid fa-stop"></i>
+</button>
+<button class="btn btn-info" id="openGraphBtn">
+<i class="fa-solid fa-chart-line"></i>
+</button>
+<button class="btn btn-info" id="reset">
+<a class="text-white text-decoration-none" href="{% url 'nettraffic' %}">
+<i class="fa-solid fa-clock-rotate-left text-black"></i>
+</a>
+</button>
+<button class="btn btn-info" disabled="" id="downloadCsvBtn">
+<i class="fa-solid fa-download"></i>
+</button>
+<button class="btn btn-info" onclick="clearTrafficCache()">
+<i class="fa-solid fa-trash"></i>
+</button>
+<button class="btn btn-info" disabled="" id="labeling" onclick="toggleModal('labelModal')">
+<i class="fa-solid fa-tag mr-1"></i>
+</button>
+</div>
+<!-- Table Section -->
+<div class="card">
+<div class="card-body" style="overflow-x: auto;">
+<div class="table-responsive">
+<table class="table table-dark table-hover table-bordered">
+<thead>
+	<tr>
+	<th>#</th>
+
+	<th>Time</th>
+
+	<th>Source IP</th>
+
+	<th>Destination IP</th>
+
+	<th>Protocol</th>
+
+	<th>Src Port</th>
+
+	<th>Dst Port</th>
+
+	<th>TTL</th>
+
+	<th>Length</th>
+
+	<th>Payload</th>
+
+	<th>Flow Duration</th>
+
+	<th>PPS</th>
+
+	<th>BPS</th>
+
+	<th>Inter-arrival</th>
+
+	<th>IP Header Len</th>
+
+	<th>Packet ID</th>
+
+	<th>Frag Offset</th>
+
+	<th>TCP Window</th>
+
+	<th>TCP Seq</th>
+
+	<th>TCP Ack</th>
+
+	<th>TCP Urg Ptr</th>
+
+	<th>ICMP Type</th>
+
+	<th>ICMP Code</th>
+
+	<th>SYN</th>
+
+	<th>ACK</th>
+
+	<th>RST</th>
+
+	<th>FIN</th>
+
+	<th>PSH</th>
+
+	<th>URG</th>
+
+	<th>Total Packets</th>
+
+	<th>Total Bytes</th>
+
+	<th>Packet Size Std</th>
+
+	<th>Burstiness</th>
+
+	<th>Unique Dst Ports</th>
+
+	<th>Info</th>
+
+	<th>Prediction</th>
+
+	<th>IP Block</th>
+
+</tr>
+
+</thead>
+<tbody id="trafficData">
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Graph Window -->
+<div id="floatingWindow">
+<div class="floating-header" id="dragHandle">
+<span>
+      Traffic Graph
+     </span>
+<span class="close-btn" id="closeGraphBtn">
+      ×
+     </span>
+</div>
+<div class="floating-body">
+<canvas id="trafficChart">
+</canvas>
+</div>
+<div class="resizer" id="resizer">
+</div>
+</div>
+<!-- labling modal code -->
+<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50" id="labelModal">
+<div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+<h2 class="text-xl font-bold mb-4 text-gray-800">Add Label Column</h2>
+<label class="block text-gray-700 font-semibold mb-1">Column Name</label>
+<input class="w-full px-4 py-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" id="labelColumn" placeholder="e.g. Status" type="text"/>
+<label class="block text-gray-700 font-semibold mb-1">Label Value</label>
+<input class="w-full px-4 py-2 mb-4 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black" id="labelValue" placeholder="e.g. Malicious" type="text"/>
+<div class="flex justify-end space-x-2">
+<button class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded" onclick="toggleModal('labelModal')">Cancel</button>
+<button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded" onclick="applyLabel()">Apply</button>
+</div>
+</div>
+</div>
+<!-- tooltip for copy button isted of alert -->
+<div id="copy-tooltip" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+background: #333; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 14px;
+opacity: 0; pointer-events: none; transition: opacity 0.3s;"></div>
+<script>
+function applyLabel() {
+  const colName = document.getElementById('labelColumn').value.trim();
+  const value = document.getElementById('labelValue').value.trim();
+  if (!colName || !value) return alert("Fill both fields.");
+
+  const headerRow = document.querySelector("thead tr");
+  const dataRows = document.querySelectorAll("#trafficData tr");
+  const headers = Array.from(headerRow.children);
+  
+  let colIndex = headers.findIndex(th => th.dataset.label === colName || th.textContent.trim().startsWith(colName));
+  const existing = colIndex !== -1;
+
+  if (!existing) {
+    const copyTh = headers.find(th => th.textContent.trim() === "IP Block" || th.querySelector(".fa-copy"));
+    const copyThIndex = copyTh ? headers.indexOf(copyTh) : -1;
+
+    const newTh = document.createElement("th");
+    newTh.dataset.label = colName;
+    newTh.innerHTML = `${colName}
+      <button class="ml-2 text-red-600 hover:text-red-800" onclick="deleteLabelColumn('${colName}')">
+        <i class="fas fa-trash-alt"></i>
+      </button>`;
+
+    if (copyThIndex !== -1) headerRow.insertBefore(newTh, headerRow.children[copyThIndex]);
+    else headerRow.appendChild(newTh);
+
+    colIndex = copyThIndex;
+
+    dataRows.forEach(row => {
+      const copyCell = row.querySelector("td:last-child");
+      const newTd = document.createElement("td");
+      newTd.dataset.label = colName;
+      if (copyCell) row.insertBefore(newTd, copyCell);
+      else row.appendChild(newTd);
+    });
+  }
+
+  dataRows.forEach(row => {
+    const cell = row.children[colIndex];
+    if (cell) cell.textContent = value;
+  });
+
+  toggleModal('labelModal');
+}
+function toggleModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.toggle("hidden");
+  } else {
+    console.warn("Modal not found:", id);
+  }
+}
+function deleteLabelColumn(label) {
+      const headerRow = document.querySelector("thead tr");
+      const ths = Array.from(headerRow.children);
+      const index = ths.findIndex(th => th.dataset.label === label);
+
+      if (index === -1) return;
+
+      // Remove header
+      headerRow.removeChild(headerRow.children[index]);
+
+      // Remove cells in all rows
+      const dataRows = document.querySelectorAll("#trafficData tr");
+      dataRows.forEach(row => {
+        row.removeChild(row.children[index]);
+      });
+}
+
+               // ip filter code
+                let ipFilter = ""; // Store the IP after user submits
+
+                document.getElementById("submitIpBtn").addEventListener("click", () => {
+                    const enteredIp = document.getElementById("ipFilterInput").value.trim();
+
+                    if (!enteredIp) {
+                        // No IP entered → Monitor all traffic (no filter)
+                        ipFilter = ""; // clear any previous filter
+                        showTooltip("✅ Monitoring all traffic (no IP filter)");
+                    } else {
+                        // IP entered → Filter by entered IP
+                        ipFilter = enteredIp;
+                        showTooltip(`✅ Filtering traffic for IP: ${ipFilter}`);
+                    }
+                });
+
+                // floating graph
+               
+
+               let monitoring = false, intervalId, serialNo = 1;
+               let chart, trafficData = {
+                            labels: [], // Time stamps for x-axis
+                            datasets: [
+                                {
+                                    label: 'Packet Size (Bytes)',
+                                    data: [],
+                                    borderColor: 'blue',
+                                    fill: false
+                                },
+                                {
+                                    label: 'PPS',
+                                    data: [],
+                                    borderColor: 'green',
+                                    fill: false
+                                },
+                                {
+                                    label: 'BPS',
+                                    data: [],
+                                    borderColor: 'red',
+                                    fill: false
+                                }
+                            ]
+                        };
+
+                        function createChart() {
+                        const ctx = document.getElementById('trafficChart');
+                        if (!ctx) return;
+
+                        chart = new Chart(ctx.getContext('2d'), {
+                            type: 'line',
+                            data: trafficData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                animation: { duration: 500 },
+                                scales: {
+                                    x: {
+                                        title: { display: true, text: 'Time' }
+                                    },
+                                    y: {
+                                        title: { display: true, text: 'Value' },
+                                        ticks: {
+                                            callback: function (value) {
+                                                if (value >= 1e9) return (value / 1e9).toFixed(2) + ' GB';
+                                                if (value >= 1e6) return (value / 1e6).toFixed(2) + ' MB';
+                                                if (value >= 1e3) return (value / 1e3).toFixed(2) + ' KB';
+                                                return value + ' B';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                              function startMonitoring() {
+                                const selectedInterface = document.getElementById("interfaceSelect").value;
+                                if (!selectedInterface) {
+                                    alert("Please select a network interface before starting monitoring.");
+                                    return;
+                                }
+
+                                monitoring = true;
+                                document.getElementById("startBtn").disabled = true;
+                                document.getElementById("stopBtn").disabled = false;
+
+                                fetchContinuously(selectedInterface);
+
+                                // Disable IP input and button while monitoring
+                                document.getElementById("ipFilterInput").disabled = true;
+                                document.getElementById("submitIpBtn").disabled = true;
+                                document.getElementById("reset").disabled = true;
+                                document.getElementById("interfaceSelect").disabled = true;
+                                
+                                // Optionally enable stop button if needed
+                                document.getElementById("stopBtn").disabled = false;
+                            }
+
+                            async function fetchContinuously(selectedInterface) {
+                                  const filterIp = ipFilter; // Use the global IP filter value
+
+                                  while (monitoring) {
+                                      try {
+                                          const response = await fetch(`/capture/?interface=${selectedInterface}`);
+                                          const data = await response.json();
+
+                                          if (!data.error) {
+                                              let newRows = "";
+
+                                              data.packets.reverse().forEach(packet => {
+                                              if (!filterIp || packet.dst_ip === filterIp) {
+                                                const prediction = (packet.prediction || '').toUpperCase();
+                                                const isAttack = ["SYN", "RST", "ACK", "FIN", "PSH", "UDP", "FRAG", "DDOS", "ICMP"].includes(prediction);
+                                                const rowClass = isAttack ? 'attack-row' : '';
+
+                                                newRows += `<tr class="${rowClass}">
+                                                  <td>${serialNo++}</td>
+                                                  <td>${packet.time || 0}</td>
+                                                  <td>${packet.src_ip || 0}</td>
+                                                  <td>${packet.dst_ip || 0}</td>
+                                                  <td>${packet.protocol || 0}</td>
+                                                  <td>${packet.src_port || 0}</td>
+                                                  <td>${packet.dst_port || 0}</td>
+                                                  <td>${packet.ttl || 0}</td>
+                                                  <td>${packet.length || 0}</td>
+                                                  <td>${packet.payload_size || 0}</td>
+                                                  <td>${packet.flow_duration || 0}</td>
+                                                  <td>${packet.pps || 0}</td>
+                                                  <td>${packet.bps || 0}</td>
+                                                  <td>${packet.inter_arrival_time || 0}</td>
+                                                  <td>${packet.ip_header_length || 0}</td>
+                                                  <td>${packet.packet_id || 0}</td>
+                                                  <td>${packet.fragment_offset || 0}</td>
+                                                  <td>${packet.tcp_window_size || 0}</td>
+                                                  <td>${packet.tcp_seq || 0}</td>
+                                                  <td>${packet.tcp_ack || 0}</td>
+                                                  <td>${packet.tcp_urg_ptr || 0}</td>
+                                                  <td>${packet.icmp_type || 0}</td>
+                                                  <td>${packet.icmp_code || 0}</td>
+                                                  <td>${packet.tcp_flag_syn || 0}</td>
+                                                  <td>${packet.tcp_flag_ack || 0}</td>
+                                                  <td>${packet.tcp_flag_rst || 0}</td>
+                                                  <td>${packet.tcp_flag_fin || 0}</td>
+                                                  <td>${packet.tcp_flag_psh || 0}</td>
+                                                  <td>${packet.tcp_flag_urg || 0}</td>
+                                                  <td>${packet.total_packets || 0}</td>
+                                                  <td>${packet.total_bytes || 0}</td>
+                                                  <td>${packet.packet_size_std || 0}</td>
+                                                  <td>${packet.burstiness || 0}</td>
+                                                  <td>${packet.unique_dst_ports || 0}</td>
+                                                  <td>${packet.info || ''}</td>
+                                                  <td>${packet.prediction || 'N/A'}</td>
+                                                  <td>
+                                                      <button class="btn btn-sm btn-primary" onclick="copyTrafficRow(this.closest('tr'))">
+                                                          <i class="fa-solid fa-ban" title="ipblock"></i>
+                                                      </button>
+                                                  </td>
+                                                </tr>`;
+                                              }
+                                            });
+
+
+                                              const tbody = document.getElementById('trafficData');
+                                              tbody.insertAdjacentHTML('afterbegin', newRows);
+                                              document.querySelector(".table-responsive").scrollTop = 0;
+                                              document.getElementById("packetCount").textContent = tbody.rows.length;
+
+                                              Array.from(tbody.rows).forEach((row, idx) => {
+                                                  row.cells[0].textContent = idx + 1;
+                                              });
+
+                                              // Update chart with packet data
+                                              data.packets.reverse().forEach(packet => {
+                                                  trafficData.labels.push(packet.time);
+                                                  trafficData.datasets[0].data.push(packet.length); // Packet Size (Bytes)
+                                                  trafficData.datasets[1].data.push(packet.pps);    // Packets Per Second
+                                                  trafficData.datasets[2].data.push(packet.bps);    // Bytes Per Second
+
+                                                  if (trafficData.labels.length > 50) {
+                                                      trafficData.labels.shift();
+                                                      trafficData.datasets[0].data.shift();
+                                                      trafficData.datasets[1].data.shift();
+                                                      trafficData.datasets[2].data.shift();
+                                                  }
+                                              });
+
+                                              chart.update();
+                                          }
+                                      } catch (error) {
+                                          console.error("Fetch error:", error);
+                                      }
+
+                                      await new Promise(resolve => setTimeout(resolve, 500)); // Delay between fetch requests
+                                  }
+                              }
+
+               function stopMonitoring() {
+                  const tbody = document.getElementById("trafficData");
+                   monitoring = false;
+                   document.getElementById("startBtn").disabled = false;
+                   document.getElementById("stopBtn").disabled = true;
+
+                   // Re-enable IP input and button
+                   document.getElementById("ipFilterInput").disabled = false;
+                   document.getElementById("submitIpBtn").disabled = false;
+                   document.getElementById("reset").disabled = false;
+                   document.getElementById("interfaceSelect").disabled = false;
+
+                   if (tbody.rows.length > 0) {
+                      document.getElementById("labeling").disabled = false;
+                      document.getElementById("downloadCsvBtn").disabled = false;
+                    }
+                   // Optionally disable stop button if needed
+                   document.getElementById("stopBtn").disabled = true;
+
+                   // Save current table data to localStorage json storage
+                    const rows = document.querySelectorAll("#trafficData tr");
+                    const headers = Array.from(document.querySelectorAll("thead th")).map(th => th.textContent.trim());
+
+                    const jsonData = [];
+
+                    rows.forEach(row => {
+                      const cells = row.querySelectorAll("td");
+                      let rowData = {};
+
+                      headers.forEach((header, idx) => {
+                        if (cells[idx]) {
+                          // Save text normally
+                          rowData[header] = cells[idx].innerText.trim();
+
+                          // If IP Block column, store custom "blocked" flag
+                          if (header === "IP Block") {
+                            const isBlocked = cells[idx].classList.contains("blocked-ip");
+                            rowData["Blocked"] = isBlocked;  // Add extra key
+                          }
+                        }
+                      });
+
+                      jsonData.push(rowData);
+                    });
+
+                    localStorage.setItem("cachedRealtimeTrafficData", JSON.stringify(jsonData));
+                    localStorage.setItem("cachedRealtimeGraphData", JSON.stringify(trafficData));
+
+                  //end of localStorage json storage
+               }
+
+               // CSV file download
+               function downloadCSV() {
+                  let table = document.querySelector("table");
+                  let headerRow = table.querySelector("thead tr");
+                  let headers = Array.from(headerRow.querySelectorAll("th"));
+
+                  // Find the indexes of unwanted columns dynamically
+                  let unwantedIndexes = [];
+
+                  headers.forEach((th, idx) => {
+                      const text = th.textContent.trim().toLowerCase();
+                      if (text === "#" || text === "time" || text === "info" || text === "copy" || text === "ip block") {
+                          unwantedIndexes.push(idx);
+                      }
+                  });
+
+                  let rows = table.querySelectorAll("tr");
+                  let csvContent = [];
+
+                  rows.forEach(row => {
+                      let rowData = [];
+                      let cells = row.querySelectorAll("th, td");
+
+                      cells.forEach((cell, index) => {
+                          // Skip unwanted columns
+                          if (unwantedIndexes.includes(index)) return;
+
+                          // Also skip if this cell itself contains a copy icon
+                          if (cell.querySelector("i.fas.fa-copy")) return;
+
+                          rowData.push(cell.innerText.trim());
+                      });
+
+                      csvContent.push(rowData.join(","));
+                  });
+
+                  let csvFile = new Blob([csvContent.join("\n")], { type: "text/csv" });
+                  let downloadLink = document.createElement("a");
+                  downloadLink.href = URL.createObjectURL(csvFile);
+                  downloadLink.download = "captured_traffic.csv";
+
+                  document.body.appendChild(downloadLink);
+                  downloadLink.click();
+                  document.body.removeChild(downloadLink);
+              }
+              document.getElementById("downloadCsvBtn").addEventListener("click", downloadCSV);
+
+              
+              //for jason Storage
+              document.addEventListener("DOMContentLoaded", () => {
+                // Restore graph data FIRST
+                const cachedGraph = localStorage.getItem("cachedRealtimeGraphData");
+                if (cachedGraph) {
+                  const parsed = JSON.parse(cachedGraph);
+                  trafficData.labels = parsed.labels || [];
+                  trafficData.datasets[0].data = parsed.datasets?.[0]?.data || [];
+                  trafficData.datasets[1].data = parsed.datasets?.[1]?.data || [];
+                  trafficData.datasets[2].data = parsed.datasets?.[2]?.data || [];
+                }
+
+                // Now create chart with preloaded data
+                createChart();
+
+                // Restore table data
+                const cached = localStorage.getItem("cachedRealtimeTrafficData");
+                if (cached) {
+                  const data = JSON.parse(cached);
+                  const tbody = document.getElementById("trafficData");
+                  const headers = Object.keys(data[0] || {});
+
+                  data.forEach(item => {
+                  const row = document.createElement("tr");
+
+                  headers.forEach(header => {
+                    const td = document.createElement("td");
+                    if (header === "IP Block") {
+                      td.innerHTML = `
+                        <button class="btn btn-sm btn-primary ${item["Blocked"] === "true" ? "blocked-ip" : ""}"
+                          onclick="copyTrafficRow(this.closest('tr'))">
+                          <i class="fa-solid fa-ban" title="ipblock"></i>
+                        </button>`;
+                    } else {
+                      td.textContent = item[header] || "";
+                    }
+                    row.appendChild(td);
+                  });
+
+                  // Highlight attacks (if "Prediction" matches)
+                  const predictionIndex = headers.findIndex(h => h.toLowerCase() === "prediction");
+                  if (predictionIndex !== -1) {
+                    const predText = item["Prediction"]?.trim().toUpperCase();
+                    if (["SYN", "RST", "ACK", "FIN", "PSH", "UDP", "FRAG", "DDOS", "ICMP"].includes(predText)) {
+                      row.classList.add("attack-row");
+                    }
+                  }
+
+                  // Restore blocked IP cell style
+                  if (item["Blocked"] === true || item["Blocked"] === "true") {
+                    const ipBlockCell = row.lastElementChild;
+                    if (ipBlockCell) ipBlockCell.classList.add("blocked-ip");
+                  }
+
+                  tbody.appendChild(row);
+                });
+
+
+                  document.getElementById("packetCount").textContent = tbody.rows.length;
+                  document.getElementById("labeling").disabled = false;
+                  document.getElementById("downloadCsvBtn").disabled = false;
+                }
+
+                // Floating graph drag/resize handlers
+                const floatingWindow = document.getElementById("floatingWindow");
+                const dragHandle = document.getElementById("dragHandle");
+                let offsetX, offsetY, isDragging = false;
+
+                dragHandle.addEventListener("mousedown", (e) => {
+                  isDragging = true;
+                  offsetX = e.clientX - floatingWindow.offsetLeft;
+                  offsetY = e.clientY - floatingWindow.offsetTop;
+                });
+
+                document.addEventListener("mousemove", (e) => {
+                  if (isDragging) {
+                    floatingWindow.style.left = `${e.clientX - offsetX}px`;
+                    floatingWindow.style.top = `${e.clientY - offsetY}px`;
+                  }
+                });
+
+                document.addEventListener("mouseup", () => isDragging = false);
+
+                const resizer = document.getElementById("resizer");
+                let isResizing = false;
+
+                resizer.addEventListener("mousedown", () => isResizing = true);
+                document.addEventListener("mousemove", (e) => {
+                  if (isResizing) {
+                    floatingWindow.style.width = `${e.clientX - floatingWindow.offsetLeft}px`;
+                    floatingWindow.style.height = `${e.clientY - floatingWindow.offsetTop}px`;
+                  }
+                });
+                document.addEventListener("mouseup", () => isResizing = false);
+
+                document.getElementById("openGraphBtn").addEventListener("click", () => {
+                  floatingWindow.style.display = (floatingWindow.style.display === "block") ? "none" : "block";
+                });
+
+                document.getElementById("closeGraphBtn").addEventListener("click", () => {
+                  floatingWindow.style.display = "none";
+                });
+              });
+
+              function clearTrafficCache() {
+                localStorage.removeItem("cachedRealtimeTrafficData");
+                localStorage.removeItem("cachedRealtimeGraphData");
+
+                // Clear table
+                const tbody = document.getElementById("trafficData");
+                tbody.innerHTML = "";
+                document.getElementById("packetCount").textContent = "0";
+
+                // Clear chart
+                trafficData.labels = [];
+                trafficData.datasets.forEach(ds => ds.data = []);
+                if (chart) chart.update();
+                 
+                //red color for attack
+                
+
+
+                // Disable buttons again
+                document.getElementById("labeling").disabled = true;
+                document.getElementById("downloadCsvBtn").disabled = true;
+              }
+              //end of json storage
+       </script>
+</section>
+</div>
+</div></main>
+
+{% endblock %}
+    <script>
+    function blockIpFromRow(row) {
+        const ip = row.cells[2]?.textContent || "";
+        if (ip) alert("Block IP logic to be implemented for: " + ip);
+    }
+    </script>

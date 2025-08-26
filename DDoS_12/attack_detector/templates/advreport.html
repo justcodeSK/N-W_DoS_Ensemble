@@ -1,0 +1,156 @@
+{% extends 'user.html' %}
+{% block title %}AI Traffic Report – Net Zero{% endblock %}
+
+{% block content %}
+<style>
+  .blinking-cursor::after {
+    content: '|';
+    animation: blink 1s infinite;
+    color: #00ff99;
+    font-weight: bold;
+  }
+
+  p {
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+  }
+
+  @keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0; }
+  }
+</style>
+
+<div class="bg-black/60 rounded-xl p-6 shadow-xl backdrop-blur-md transition-all duration-300">
+  <div class="container text-white mx-auto">
+    <h1 class="text-3xl font-bold mb-3">AI-Powered Traffic Report</h1>
+    <p class="text-sm text-gray-300 mb-4">
+      Gemini AI provides detailed insights based on your recent traffic session.
+    </p>
+
+    <div class="mb-6">
+      <button onclick="generateAIReport()" class="bg-green-600 hover:bg-green-700 transition px-4 py-2 rounded-md text-white font-medium shadow">
+        <i class="fa-solid fa-robot mr-2"></i>Generate AI Report
+      </button>
+    </div>
+
+    <div id="aiReportOutput" class="p-4 font-mono text-sm text-white bg-gray-900 rounded-lg min-h-[150px] blinking-cursor"></div>
+  </div>
+</div>
+
+<script>
+  async function generateAIReport() {
+    const cached = localStorage.getItem("cachedRealtimeTrafficData");
+    const output = document.getElementById("aiReportOutput");
+    output.innerHTML = "<span class='italic text-gray-400'>⏳ Generating report...</span>";
+    output.classList.add("animate-pulse", "blinking-cursor");
+
+    if (!cached) {
+      output.classList.remove("animate-pulse", "blinking-cursor");
+      output.innerHTML = "<span class='text-red-400'>❌ No traffic data found in cache.</span>";
+      return;
+    }
+
+    try {
+      const response = await fetch("/generate_gemini_report/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: cached
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+
+      const result = await response.json();
+      output.classList.remove("animate-pulse", "blinking-cursor");
+
+      if (result.report) {
+        let cleanedText = result.report
+          .replace(/```html|```/g, "")        // Remove markdown code block
+          .replace(/\r\n/g, "\n")             // Normalize line endings
+          .split("\n")                        // Split into lines
+          .filter(line => line.trim() !== "") // Remove empty lines
+          .join("\n")                         // Rejoin trimmed lines
+          .trim();                            // Final trim
+
+        output.innerHTML = "";
+        typeTextWithAnimation(cleanedText, output);
+      } else {
+        output.innerHTML = `<span class='text-yellow-400'>⚠️ ${result.error || "Unknown error."}</span>`;
+      }
+
+    } catch (err) {
+      output.classList.remove("animate-pulse", "blinking-cursor");
+      output.innerHTML = `<span class='text-red-400'>❌ Request failed: ${err.message}</span>`;
+    }
+  }
+
+  function typeTextWithAnimation(text, container) {
+    const lines = text.split("\n").filter(line => line.trim() !== "");
+    let lineIndex = 0;
+
+    function isHeading(line) {
+      return /^[A-Z\s]+$/.test(line.trim()) && line.trim().length > 3;
+    }
+
+    function formatLine(line) {
+      if (isHeading(line)) {
+        return `<h2 class="flex items-center gap-2 text-green-400 text-lg font-semibold mb-1 border-b border-green-500 pb-1"><span>✅</span> ${line.trim()}</h2>`;
+      } else if (line.trim().startsWith("*")) {
+        const content = line.trim().substring(1).trim();
+        const match = content.match(/^<strong>(.*?)<\/strong>:\s*(.*)/i);
+        if (match) {
+          return `<p class="ml-4 text-white"><span class="text-green-300">•</span> <strong>${match[1]}</strong>: ${match[2]}</p>`;
+        }
+        return `<p class="ml-4 text-white"><span class="text-green-300">•</span> ${content}</p>`;
+      } else {
+        return `<p class="text-gray-300">${line.trim()}</p>`;
+      }
+    }
+
+    function typeLineCharByChar(htmlString, callback) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlString;
+      const node = tempDiv.firstChild;
+
+      // Create finalNode structure without any inner content
+      const finalNode = node.cloneNode(false); // Shallow copy, excludes children
+
+      // Extract inner text (not HTML tags or emoji spans)
+      const content = node.textContent;
+      let charIndex = 0;
+
+      container.appendChild(finalNode);
+
+      function typeChar() {
+        finalNode.textContent = content.slice(0, charIndex);
+
+        if (charIndex < content.length) {
+          charIndex++;
+          setTimeout(typeChar, 15);
+        } else {
+          // Re-apply innerHTML with full formatted string after typing completes (for emoji)
+          finalNode.outerHTML = htmlString;
+          callback();
+        }
+      }
+
+      typeChar();
+    }
+
+
+    function typeNextLine() {
+      if (lineIndex >= lines.length) return;
+      const line = lines[lineIndex++];
+      const formatted = formatLine(line);
+      typeLineCharByChar(formatted, () => {
+        setTimeout(typeNextLine, 100);
+      });
+    }
+
+    setTimeout(typeNextLine, 300);
+  }
+</script>
+{% endblock %}

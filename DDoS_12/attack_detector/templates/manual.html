@@ -1,0 +1,332 @@
+
+{% extends 'user.html' %}
+{% load static %}
+
+{% block title %}ML Detection Form{% endblock %}
+
+{% block content %}
+<style>
+  .card {
+    background-color: transparent;
+    color: #e0e0e0;
+    border-radius: 10px;
+  }
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .form-group {
+    flex: 1 1 100%;
+  }
+  @media (min-width: 768px) {
+    .form-group {
+      flex: 1 1 48%;
+    }
+  }
+  @media (min-width: 1024px) {
+    .form-group {
+      flex: 1 1 30%;
+    }
+  }
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background-color: #333;
+    color: white;
+  }
+</style>
+
+<div class="container-fluid px-4 mt-8 md:mt-0">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold tracking-widest">
+      Manuel DoS & DDoS Detection Form
+    </h1>
+  </header>
+
+  <p class="text-white mb-3">
+    Fill in the fields below and submit to detect if the traffic is DoS, DDoS, or benign.
+  </p>
+
+  <div class="card mb-4 shadow-lg h-100">
+    <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur h-100">
+      <div class="card-header bg-dark text-white d-flex justify-between items-center">
+        <span>
+          <i class="fas fa-file-csv me-1"></i> ML Feature Input
+        </span>
+        <button onclick="fillFormFromClipboard()" title="Paste from Clipboard"
+          class="btn btn-sm btn-outline-light ms-auto px-2 py-1 rounded-full hover:bg-white hover:text-black">
+          <i class="fas fa-paste"></i>
+        </button>
+      </div>
+
+      <div class="card-body">
+        <form id="mlForm" method="post">
+          {% csrf_token %}
+      
+            <div class="d-flex align-items-center mb-3">
+                <div id="prediction-result" class="form-control bg-dark text-white me-3 mb-0" style="flex-grow: 1;">
+                    Data Packet : 
+                </div>
+                <input type="submit" class="btn btn-primary mb-0" value="submit">
+            </div>
+            
+            <div id="attack-description" class="mt-4 p-4 bg-gray-800 text-white rounded-lg shadow-md min-h-[100px] whitespace-pre-line font-mono text-sm"></div>
+
+          <div class="form-row row mt-3">
+              <div class="form-group col-md-4">
+                  <label for="protocol" class="form-label text-white">Protocol</label>
+                  <input type="text" class="form-control" id="protocol" name="protocol">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="src_port" class="form-label text-white">Src Port</label>
+                  <input type="text" class="form-control" id="src_port" name="src_port">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="length" class="form-label text-white">Length</label>
+                  <input type="text" class="form-control" id="length" name="length">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="payload" class="form-label text-white">Payload</label>
+                  <input type="text" class="form-control" id="payload" name="payload">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="flow_duration" class="form-label text-white">Flow Duration</label>
+                  <input type="text" class="form-control" id="flow_duration" name="flow_duration">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="pps" class="form-label text-white">PPS</label>
+                  <input type="text" class="form-control" id="pps" name="pps">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="bps" class="form-label text-white">BPS</label>
+                  <input type="text" class="form-control" id="bps" name="bps">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="inter_arrival" class="form-label text-white">Inter-arrival</label>
+                  <input type="text" class="form-control" id="inter_arrival" name="inter_arrival">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="packet_id" class="form-label text-white">Packet ID</label>
+                  <input type="text" class="form-control" id="packet_id" name="packet_id">
+              </div>                        
+              <div class="form-group col-md-4">
+                  <label for="frag_offset" class="form-label text-white">Frag Offset</label>
+                  <input type="text" class="form-control" id="frag_offset" name="frag_offset">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="icmp_type" class="form-label text-white">ICMP Type</label>
+                  <input type="text" class="form-control" id="icmp_type" name="icmp_type">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="syn" class="form-label text-white">SYN</label>
+                  <input type="text" class="form-control" id="syn" name="syn">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="ack" class="form-label text-white">ACK</label>
+                  <input type="text" class="form-control" id="ack" name="ack">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="rst" class="form-label text-white">RST</label>
+                  <input type="text" class="form-control" id="rst" name="rst">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="fin" class="form-label text-white">FIN</label>
+                  <input type="text" class="form-control" id="fin" name="fin">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="psh" class="form-label text-white">PSH</label>
+                  <input type="text" class="form-control" id="psh" name="psh">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="total_packets" class="form-label text-white">Total Packets</label>
+                  <input type="text" class="form-control" id="total_packets" name="total_packets">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="total_bytes" class="form-label text-white">Total Bytes</label>
+                  <input type="text" class="form-control" id="total_bytes" name="total_bytes">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="burstiness" class="form-label text-white">Burstiness</label>
+                  <input type="text" class="form-control" id="burstiness" name="burstiness">
+              </div>
+              <div class="form-group col-md-4">
+                  <label for="unique_dst_ports" class="form-label text-white">Unique Dst Ports</label>
+                  <input type="text" class="form-control" id="unique_dst_ports" name="unique_dst_ports">
+              </div>
+          </div>
+      </form>  
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"
+  class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 rounded-xl shadow-md hidden z-50 text-sm font-semibold">
+</div>
+
+<script>
+  document.querySelector('form').addEventListener('submit', function (e) {
+    const inputs = this.querySelectorAll('input[type="text"], input[type="number"]');
+    let allEmpty = true;
+
+    inputs.forEach(input => {
+      if (input.value.trim() !== '') {
+        allEmpty = false;
+      }
+    });
+
+    if (allEmpty) {
+      e.preventDefault();
+      showTooltip("No values inputted!");
+    }
+  });
+
+  function showTooltip(message, isError = false) {
+    const tooltip = document.getElementById("tooltip");
+    tooltip.textContent = message;
+    tooltip.classList.remove("hidden");
+    tooltip.classList.toggle("bg-red-600", isError);
+    tooltip.classList.toggle("bg-green-600", !isError);
+
+    setTimeout(() => {
+      tooltip.classList.add("hidden");
+    }, 4000);
+  }
+
+  async function fillFormFromClipboard() {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      const values = clipboardText.trim().split("\n");
+
+      const fieldIds = [
+        'protocol', 'src_port', 'length', 'payload', 'flow_duration',
+        'pps', 'bps', 'inter_arrival', 'packet_id', 'frag_offset',
+        'icmp_type', 'syn', 'ack', 'rst', 'fin', 'psh',
+        'total_packets', 'total_bytes', 'burstiness', 'unique_dst_ports'
+      ];
+
+      if (values.length !== fieldIds.length) {
+        showTooltip(`⚠️ Expected ${fieldIds.length}, got ${values.length}.`, true);
+        return;
+      }
+
+      fieldIds.forEach((id, index) => {
+        const input = document.getElementById(id);
+        if (input) input.value = values[index];
+      });
+
+      showTooltip("✅ Form filled from clipboard!");
+    } catch (err) {
+      console.error("Clipboard error:", err);
+      showTooltip("❌ Could not access clipboard. Check permissions.", true);
+    }
+  }
+
+  document.getElementById('mlForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    try {
+      const response = await fetch('/manual-predict/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      const data = await response.json();
+      document.getElementById('prediction-result').textContent = "Data Packet: " + data.prediction;
+
+    } catch (error) {
+      console.error("Prediction failed", error);
+      document.getElementById('prediction-result').textContent = "Error occurred during prediction";
+    }
+  });
+
+  //description bot typing
+  const attackDescriptions = {
+    'SYN': "SYN flood is a type of DoS attack where attackers send a succession of SYN requests to exhaust server resources.",
+    'RST': "RST packets are used to abruptly close connections. Abnormal patterns may suggest spoofing or reset attacks.",
+    'ACK': "ACK floods are often used in DDoS attacks to overload state tables in firewalls and routers.",
+    'FIN': "FIN scans are used in stealth attacks to probe if ports are closed without being logged.",
+    'PSH': "PSH flags indicate data should be pushed immediately. Irregular patterns may signal anomalous flows.",
+    'UDP': "UDP flood attacks exploit the connectionless nature of UDP to overwhelm target resources.",
+    'FRAG': "Fragmentation attacks split packets to bypass detection systems and exhaust memory buffers.",
+    'DDOS': "Distributed Denial of Service (DDoS) attacks involve multiple systems overwhelming a target.",
+    'ICMP': "ICMP floods (e.g., ping floods) send echo requests to consume bandwidth and processing power.",
+    'BENIGN': "Normal traffic — no malicious behavior detected in the submitted packet."
+  };
+  let dotIntervalId = null;  // Store dot animation interval globally
+
+  function typeTextWithDots(element, text, isAttack, typingDelay = 30, dotInterval = 500) {
+    // Clear any previous dot interval
+    if (dotIntervalId !== null) {
+      clearInterval(dotIntervalId);
+      dotIntervalId = null;
+    }
+
+    element.textContent = "";
+    element.classList.remove("text-white", "text-red-500");
+    element.classList.add(isAttack ? "text-red-500" : "text-white");
+
+    let index = 0;
+
+    const typing = setInterval(() => {
+      element.textContent += text[index++];
+      if (index === text.length) {
+        clearInterval(typing);
+
+        let dotCount = 0;
+        const maxDots = 3;
+        const baseText = element.textContent;
+
+        // Store the interval ID so it can be cleared next time
+        dotIntervalId = setInterval(() => {
+          dotCount = (dotCount + 1) % (maxDots + 1);
+          element.textContent = baseText + '.'.repeat(dotCount);
+        }, dotInterval);
+      }
+    }, typingDelay);
+  }
+
+  document.getElementById('mlForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    try {
+      const response = await fetch('/manual-predict/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      const data = await response.json();
+      const result = data.prediction;
+
+      document.getElementById('prediction-result').textContent = "Data Packet: " + result;
+
+      const descriptionBox = document.getElementById('attack-description');
+      const desc = attackDescriptions[result] || "No description available for this type.";
+      const isAttack = result !== 'BENIGN';
+      typeTextWithDots(descriptionBox, desc, isAttack);
+
+    } catch (error) {
+      console.error("Prediction failed", error);
+      document.getElementById('prediction-result').textContent = "Error occurred during prediction";
+      typeText(document.getElementById('attack-description'), "Unable to fetch description.");
+    }
+  });
+</script>
+
+{% endblock %}

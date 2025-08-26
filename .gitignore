@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+*.mo
+*.swp
+
+# Media / Static (if generated)
+media/
+staticfiles/
+static/
+
+# Migrations (optional, if you want to ignore them completely)
+*/migrations/
+!*/migrations/__init__.py
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Personal files
+*.env
+.env.local
+.env.*.local
+secrets.json
+config.json
+
+# OS
+.DS_Store
+Thumbs.db

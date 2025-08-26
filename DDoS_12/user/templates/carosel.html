@@ -1,0 +1,143 @@
+<style>
+    @media (max-width: 768px) {
+      .content-section.me-5 {
+        margin-right: 0 !important;
+      }
+    }
+  
+    @layer utilities {
+      @keyframes carousel-in {
+        0% {
+          transform: scale(0.2) translateX(200%);
+          opacity: 0.4;
+          filter: blur(8px);
+        }
+        100% {
+          transform: scale(1) translateX(0);
+          opacity: 1;
+          filter: blur(0);
+        }
+      }
+  
+      @keyframes carousel-out {
+        0% {
+          transform: scale(1) translateX(0);
+          opacity: 1;
+          filter: blur(0);
+        }
+        100% {
+          transform: scale(0.2) translateX(-200%);
+          opacity: 0.4;
+          filter: blur(8px);
+        }
+      }
+  
+      .animate-carousel-in {
+        animation: carousel-in 0.8s ease-out forwards;
+      }
+  
+      .animate-carousel-out {
+        animation: carousel-out 0.8s ease-in forwards;
+      }
+    }
+  
+    .carousel-wrapper {
+      border-radius: 30px;
+      overflow: hidden;
+    }
+  </style>
+  
+  <div class="w-full max-w-2xl mx-auto h-[390px] group">
+    <div 
+      x-data="carousel()" 
+      x-init="startAutoplay()" 
+      @mouseenter="pauseAutoplay()" 
+      @mouseleave="startAutoplay()"
+      :class="animationClass"
+      class="carousel-wrapper relative h-full"
+    >
+      <template x-for="(slide, index) in slides" :key="index">
+        <div 
+          x-show="activeSlide === index" 
+          class="absolute inset-0 w-full h-full transition-opacity duration-500"
+        >
+          <template x-if="index === 0">
+            <img src="{% static 'img/Screenshot (110).png' %}" class="w-full h-full object-cover" />
+          </template>
+          <template x-if="index === 1">
+            <div class="w-full h-full bg-black flex items-center justify-center">
+              <iframe class="w-full h-full"
+                src="https://www.youtube.com/embed/ilhGh9CEIwM"
+                frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+              </iframe>
+            </div>
+          </template>
+          <template x-if="index === 2">
+            <img src="{% static 'img/Screenshot (112).png' %}" class="w-full h-full object-cover" />
+          </template>
+          <template x-if="index === 3">
+            <img src="{% static 'img/Screenshot 2025-04-14 180614.png' %}" class="w-full h-full object-cover" />
+          </template>
+        </div>
+      </template>
+  
+      <!-- Controls -->
+      <button @click="prevSlide()" class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full hover:bg-black">
+        &#10094;
+      </button>
+      <button @click="nextSlide()" class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white px-2 py-1 rounded-full hover:bg-black">
+        &#10095;
+      </button>
+  
+      <!-- Dots -->
+      <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+        <template x-for="(slide, i) in slides" :key="i">
+          <div @click="goToSlide(i)"
+              :class="{'bg-white': activeSlide === i, 'bg-gray-400': activeSlide !== i}"
+              class="w-3 h-3 rounded-full cursor-pointer transition"></div>
+        </template>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function carousel() {
+      return {
+        activeSlide: 0,
+        slides: [0, 1, 2, 3],
+        interval: null,
+        animationClass: 'animate-carousel-in',
+  
+        switchSlide(index) {
+          this.animationClass = 'animate-carousel-out';
+          setTimeout(() => {
+            this.activeSlide = index;
+            this.animationClass = 'animate-carousel-in';
+          }, 500);
+        },
+  
+        nextSlide() {
+          this.switchSlide((this.activeSlide + 1) % this.slides.length);
+        },
+  
+        prevSlide() {
+          this.switchSlide((this.activeSlide - 1 + this.slides.length) % this.slides.length);
+        },
+  
+        goToSlide(index) {
+          this.switchSlide(index);
+        },
+  
+        startAutoplay() {
+          this.pauseAutoplay();
+          this.interval = setInterval(() => {
+            this.nextSlide();
+          }, 5000);
+        },
+  
+        pauseAutoplay() {
+          if (this.interval) clearInterval(this.interval);
+        }
+      };
+    }
+  </script>  

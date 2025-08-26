@@ -1,0 +1,281 @@
+{% extends 'admins.html' %}
+{% load static %}
+{% load tz %} 
+
+{% block title %}Activity Logs{% endblock %}
+
+{% block content %}
+<div class="content-section mt-2" id="logs">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold tracking-widest">Activity Logs</h1>
+    <p class="text-cyan-400">Admin can view the logs of all users.</p>
+  </header>
+
+  <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur overflow-x-auto">
+
+    <!-- Filters and Search -->
+    <div class="flex flex-col gap-4 mb-4">
+      <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+          <select id="entriesSelect" class="bg-gray-800 text-white rounded px-2 py-1">
+            <option value="1">1</option>
+            <option value="3">3</option>
+            <option value="7">7</option>
+            <option value="9">9</option>
+            <option value="all" selected>All</option>
+          </select>
+
+          <select id="userFilter" class="bg-gray-800 text-white rounded px-2 py-1">
+            <option value="all">All Emails</option>
+            {% for email in unique_emails %}
+              <option value="{{ email }}">{{ email }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="text" id="searchInput" placeholder="Search..."
+            class="px-3 py-2 rounded text-black focus:outline-none focus:ring-2" />
+          <button id="deleteAllBtn"
+            class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label for="activityLimit" class="text-white text-sm mr-2">Max Activities per User:</label>
+      <select id="activityLimit" class="bg-gray-800 text-white rounded px-2 py-1 text-sm">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+        <option value="all">All</option>
+      </select>
+    </div>
+
+    <table id="logsTable" class="min-w-full divide-y divide-gray-700 text-white text-sm">
+       <thead class="bg-gray-800">
+        <tr>
+          <th class="text-left px-4 py-2">User Activity</th>
+        </tr>
+       </thead>
+      <tbody id="tableBody" class="bg-black/50 divide-y divide-gray-700">
+        {% if logs %}
+          {% for log in logs %}
+            {% if log.User_login_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Login
+                  <span class="text-gray-500 text-xs ml-2">({{ log.User_login_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.User_settings_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Profile Update
+                  <span class="text-gray-500 text-xs ml-2">({{ log.User_settings_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.User_home_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  User Home
+                  <span class="text-gray-500 text-xs ml-2">({{ log.User_home_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.Capture_traffic_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Capture Traffic
+                  <span class="text-gray-500 text-xs ml-2">({{ log.Capture_traffic_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.Charts_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Charts
+                  <span class="text-gray-500 text-xs ml-2">({{ log.Charts_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.Csv_file_editor_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  CSV Editor
+                  <span class="text-gray-500 text-xs ml-2">({{ log.Csv_file_editor_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.RealTime_Traffic_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Real-Time
+                  <span class="text-gray-500 text-xs ml-2">({{ log.RealTime_Traffic_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.DDOS_Home_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  DDoS Home
+                  <span class="text-gray-500 text-xs ml-2">({{ log.DDOS_Home_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.Manual_detection_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Manual Detection
+                  <span class="text-gray-500 text-xs ml-2">({{ log.Manual_detection_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.DDOS_Report_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  DDoS Report
+                  <span class="text-gray-500 text-xs ml-2">({{ log.DDOS_Report_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.DDOS_AI_Report_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  AI Report
+                  <span class="text-gray-500 text-xs ml-2">({{ log.DDOS_AI_Report_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+            {% if log.User_logout_time %}
+              <tr data-user="{{ log.User_key.Email }}">
+                <td class="px-4 py-2 activity-item">
+                  <span class="font-semibold">{{ log.User_key.Fname }} {{ log.User_key.Lname }}</span>
+                  <span class="text-gray-400">visited</span>
+                  Logout
+                  <span class="text-gray-500 text-xs ml-2">({{ log.User_logout_time|localtime }})</span>
+                </td>
+              </tr>
+            {% endif %}
+
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="1" class="text-center py-4 text-gray-400">No logs found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("searchInput");
+  const entriesSelect = document.getElementById("entriesSelect");
+  const userFilter = document.getElementById("userFilter");
+  const activityLimit = document.getElementById("activityLimit");
+  const deleteAllBtn = document.getElementById("deleteAllBtn");
+
+  const rows = Array.from(document.querySelectorAll("#tableBody tr"));
+
+  function getLatestActivityTime(row) {
+    const timestamps = Array.from(row.querySelectorAll(".activity-item span.text-gray-500"))
+      .map(span => {
+        const raw = span.textContent.replace(/[()]/g, '').trim();
+        const parsed = Date.parse(raw);
+        return isNaN(parsed) ? 0 : parsed;
+      });
+    return timestamps.length ? Math.max(...timestamps) : 0;
+  }
+
+  function updateTable() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const selectedEmail = userFilter.value;
+    const limit = entriesSelect.value === "all" ? Infinity : parseInt(entriesSelect.value);
+    const activityCount = activityLimit.value === "all" ? Infinity : parseInt(activityLimit.value);
+
+    let filtered = rows.filter(row => {
+      const text = row.innerText.toLowerCase();
+      const email = row.dataset.user;
+      return text.includes(searchTerm) && (selectedEmail === "all" || email === selectedEmail);
+    });
+
+    // Default sort by newest first
+    filtered.sort((a, b) => {
+      const timeA = getLatestActivityTime(a);
+      const timeB = getLatestActivityTime(b);
+      return timeB - timeA; // newest first
+    });
+
+    rows.forEach(row => row.style.display = "none");
+    const toShow = filtered.slice(0, limit);
+    toShow.forEach(row => {
+      row.style.display = "";
+    });
+
+    // Limit activity lines per user
+    const userGroups = {};
+    toShow.forEach(row => {
+      const email = row.dataset.user;
+      if (!userGroups[email]) userGroups[email] = [];
+      userGroups[email].push(row);
+    });
+    Object.values(userGroups).forEach(groupRows => {
+      groupRows.forEach((r, i) => {
+        r.style.display = i < activityCount ? "" : "none";
+      });
+    });
+  }
+
+  // Bind events
+  searchInput.addEventListener("input", updateTable);
+  entriesSelect.addEventListener("change", updateTable);
+  userFilter.addEventListener("change", updateTable);
+  activityLimit.addEventListener("change", updateTable);
+
+  updateTable();
+
+  deleteAllBtn.addEventListener("click", () => {
+    if (confirm("Are you sure you want to delete all logs?")) {
+      fetch("{% url 'delete_all_logs' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) location.reload();
+          else alert("Failed to delete logs.");
+        });
+    }
+  });
+});
+</script>
+
+
+{% endblock %}

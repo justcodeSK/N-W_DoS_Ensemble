@@ -1,0 +1,294 @@
+{% extends 'user.html' %}
+{% block title %}Enhanced Attack Report{% endblock %}
+
+{% block content %}
+<div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur transition-all duration-300" id="reportContent">
+  <div class="container text-white">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">Enhanced Attack Report</h1>
+      <button class="btn btn-info" onclick="downloadPDFReport()">
+        <i class="fa-solid fa-file-pdf"></i>PDF
+      </button>
+    </div>
+
+    <div class="mb-4">
+      <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full" style="background-color: rgba(255,255,255,0.1);">
+        Risk Level: <span id="severityBadge" class="font-bold text-white">...</span>
+      </span>
+    </div>
+
+    <div class="flex flex-col lg:flex-row lg:space-x-4 items-start">
+      <div id="summary" class="w-full lg:w-1/3 whitespace-pre-line font-mono text-base mb-4"></div>
+      <div class="w-full lg:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h2 class="text-xl font-semibold mb-2">Attack Frequency Chart</h2>
+          <canvas id="attackBarChart" class="chart-clickable" height="180" data-title="Attack Frequency Chart"></canvas>
+        </div>
+        <div>
+          <h2 class="text-xl font-semibold mb-2">Traffic Timeline</h2>
+          <canvas id="trafficLineChart" class="chart-clickable" height="180" data-title="Traffic Timeline"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-sm text-gray-300 mb-8">
+      These charts represent the frequency of detected attack types and the network behavior in terms of packet size, PPS, and BPS.
+    </p>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-3">Attack Breakdown Table</h2>
+    <div id="breakdownTable"></div>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-3">Attack Type Explanations</h2>
+    <ul class="list-disc ml-6 text-sm leading-7">
+      <li><strong>SYN Flood:</strong> Exploits the TCP handshake by sending excessive SYN requests, overwhelming servers.</li>
+      <li><strong>ACK Flood:</strong> Sends ACK packets to consume server resources, often used in DDoS campaigns.</li>
+      <li><strong>RST Flood:</strong> Rapid TCP connection terminations to disrupt normal sessions or scan for active ports.</li>
+      <li><strong>FIN/PSH Flood:</strong> Used for stealth scans to bypass firewalls by mimicking legitimate traffic termination.</li>
+      <li><strong>UDP Flood:</strong> Sends large volumes of UDP packets, often to random ports, causing ICMP "Destination Unreachable" replies.</li>
+      <li><strong>ICMP Flood:</strong> Overwhelms targets with pings or other ICMP requests, affecting bandwidth and responsiveness.</li>
+      <li><strong>FRAG Attack:</strong> Delivers fragmented IP packets, bypassing detection systems or firewalls.</li>
+      <li><strong>DDOS:</strong> General label for distributed denial-of-service patterns involving multiple sources.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Modal Viewer -->
+<div id="chartModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden flex items-center justify-center">
+  <div class="relative w-full max-w-6xl p-6">
+    <div class="flex justify-between items-center mb-3">
+      <h3 id="modalChartTitle" class="text-white text-xl font-semibold"></h3>
+      <div class="space-x-3">
+        <button onclick="downloadModalChart()" class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Download</button>
+        <button onclick="closeChartModal()" class="text-white text-2xl">&times;</button>
+      </div>
+    </div>
+    <canvas id="modalChartCanvas" class="bg-white rounded-xl w-full h-[60vh]"></canvas>
+  </div>
+</div>
+
+<style>
+  .blinking { animation: blink 1s step-start infinite; color: white; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .chart-clickable { cursor: pointer; transition: transform 0.2s; }
+  .chart-clickable:hover { transform: scale(1.02); }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+let attackChartData, trafficChartData;
+let modalChartInstance;
+
+const data = JSON.parse(localStorage.getItem("cachedRealtimeTrafficData") || "[]");
+const summaryEl = document.getElementById("summary");
+const breakdownEl = document.getElementById("breakdownTable");
+
+let attackCounts = {}, totalPackets = data.length, attackPackets = 0;
+const time = [], size = [], pps = [], bps = [];
+
+const attackColors = {
+  SYN: '#ff6384', RST: '#ff9f40', ACK: '#ffcd56', FIN: '#4bc0c0',
+  PSH: '#36a2eb', UDP: '#9966ff', FRAG: '#c9cbcf', DDOS: '#ef4444', ICMP: '#10b981'
+};
+const defaultColor = 'rgba(255, 255, 255, 0.6)';
+
+data.forEach(row => {
+  const pred = (row["Prediction"] || "").trim().toUpperCase();
+  if (Object.keys(attackColors).includes(pred)) {
+    attackPackets++;
+    attackCounts[pred] = (attackCounts[pred] || 0) + 1;
+  }
+  time.push(row["Time"]);
+  size.push(Number(row["Length"]) || 0);
+  pps.push(Number(row["PPS"]) || 0);
+  bps.push(Number(row["BPS"]) || 0);
+});
+
+const attackTypes = Object.keys(attackCounts);
+const attackValues = Object.values(attackCounts);
+const mostFrequent = attackTypes.length ? attackTypes[attackValues.indexOf(Math.max(...attackValues))] : "None";
+
+const attackWeightMap = {
+  BENIGN: 0,  // No impact
+  SYN: 4,
+  ACK: 2,
+  RST: 3,
+  FIN: 1,
+  PSH: 1,
+  UDP: 3,
+  ICMP: 2,
+  FRAG: 3,
+  DDOS: 5
+};
+
+// Calculate weighted severity score
+let weightedSum = 0;
+let totalAttackWeight = 0;
+
+Object.entries(attackCounts).forEach(([type, count]) => {
+  const weight = attackWeightMap[type] ?? 1;
+  weightedSum += weight * count;
+  totalAttackWeight += count;
+});
+
+// Normalize by total packets scanned
+const severityScore = Math.min(100, Math.round((weightedSum / totalPackets) * 100));
+
+// Determine severity level
+let severityLevel = '';
+if (severityScore >= 75) severityLevel = '🔴 Critical';
+else if (severityScore >= 50) severityLevel = '🟠 High';
+else if (severityScore >= 25) severityLevel = '🟡 Medium';
+else severityLevel = '🟢 Low';
+
+const summaryLines = [
+  `\u{1F50E} Summary:`,
+  `Total Packets Scanned: ${totalPackets}`,
+  `Total Attacks Detected: ${attackPackets}`,
+  `Unique Attack Types: ${attackTypes.length}`,
+  `Most Frequent Attack: ${mostFrequent}`,
+  `Severity Score: ${severityScore}/100 (${severityLevel})`
+];
+
+
+let lineIndex = 0;
+function typeSummaryLine() {
+  if (lineIndex >= summaryLines.length) return;
+  const line = summaryLines[lineIndex];
+  const p = document.createElement("p");
+  p.className = "mb-1";
+  summaryEl.appendChild(p);
+
+  let charIndex = 0;
+  function typeChar() {
+    if (charIndex <= line.length) {
+      p.innerHTML = line.slice(0, charIndex) + '<span class="blinking">|</span>';
+      charIndex++;
+      setTimeout(typeChar, 20);
+    } else {
+      p.textContent = line;
+      lineIndex++;
+      setTimeout(typeSummaryLine, 200);
+    }
+  }
+  typeChar();
+}
+
+typeSummaryLine();
+
+function updateSeverityBadge() {
+  const badge = document.getElementById("severityBadge");
+  badge.textContent = severityLevel;
+  badge.classList.remove("text-green-400", "text-yellow-300", "text-orange-400", "text-red-500");
+  if (severityLevel.includes("🔴")) badge.classList.add("text-red-500");
+  else if (severityLevel.includes("🟠")) badge.classList.add("text-orange-400");
+  else if (severityLevel.includes("🟡")) badge.classList.add("text-yellow-300");
+  else badge.classList.add("text-green-400");
+}
+updateSeverityBadge();
+
+
+breakdownEl.innerHTML = `
+  <table class="table table-dark table-bordered mt-3">
+    <thead>
+      <tr><th>Attack Type</th><th>Count</th><th>Percentage</th></tr>
+    </thead>
+    <tbody>
+      ${attackTypes.map(type => `
+        <tr>
+          <td>${type}</td>
+          <td>${attackCounts[type]}</td>
+          <td>${((attackCounts[type] / totalPackets) * 100).toFixed(2)}%</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+`;
+
+const attackChart = new Chart(document.getElementById("attackBarChart"), {
+  type: 'bar',
+  data: attackChartData = {
+    labels: attackTypes,
+    datasets: [{
+      label: 'Attack Frequency',
+      data: attackValues,
+      backgroundColor: attackTypes.map(type => attackColors[type] || defaultColor),
+      borderColor: attackTypes.map(type => attackColors[type] || '#ccc'),
+      borderWidth: 1
+    }]
+  },
+  options: {
+    animation: true,
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+      x: { title: { display: true, text: 'Attack Type' } }
+    }
+  }
+});
+
+const trafficChart = new Chart(document.getElementById("trafficLineChart"), {
+  type: 'line',
+  data: trafficChartData = {
+    labels: time,
+    datasets: [
+      { label: 'Packet Size', data: size, borderColor: '#38bdf8', fill: false },
+      { label: 'PPS', data: pps, borderColor: '#facc15', fill: false },
+      { label: 'BPS', data: bps, borderColor: '#ef4444', fill: false }
+    ]
+  },
+  options: {
+    animation: true,
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'Value' } },
+      x: { title: { display: true, text: 'Time' }, ticks: { maxRotation: 45 } }
+    }
+  }
+});
+
+document.querySelectorAll(".chart-clickable").forEach(canvas => {
+  canvas.addEventListener("click", () => openChartModal(canvas.id, canvas.dataset.title));
+});
+
+function openChartModal(chartId, title) {
+  const modal = document.getElementById("chartModal");
+  const titleEl = document.getElementById("modalChartTitle");
+  modal.classList.remove("hidden");
+  titleEl.textContent = title;
+
+  const ctx = document.getElementById("modalChartCanvas").getContext("2d");
+  if (modalChartInstance) modalChartInstance.destroy();
+
+  modalChartInstance = new Chart(ctx, {
+    type: chartId === "attackBarChart" ? 'bar' : 'line',
+    data: chartId === "attackBarChart" ? attackChartData : trafficChartData,
+    options: { responsive: true, animation: { duration: 1000 } }
+  });
+}
+
+function closeChartModal() {
+  document.getElementById("chartModal").classList.add("hidden");
+}
+
+function downloadModalChart() {
+  const link = document.createElement('a');
+  link.download = document.getElementById("modalChartTitle").textContent.replace(/\s+/g, '_') + ".png";
+  link.href = document.getElementById("modalChartCanvas").toDataURL("image/png");
+  link.click();
+}
+
+async function downloadPDFReport() {
+  const { jsPDF } = window.jspdf;
+  const element = document.getElementById("reportContent");
+  await new Promise(res => setTimeout(res, 1500));
+  const canvas = await html2canvas(element, { scale: 2 });
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF("p", "mm", "a4");
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+  pdf.save("Enhanced_Attack_Report.pdf");
+}
+
+</script>
+{% endblock %}

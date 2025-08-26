@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AttackNET ZERO - Plans</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/alpinejs" defer></script>
+</head>
+<body class="bg-gradient-to-r from-gray-900 to-black text-white min-h-screen flex items-center justify-center p-6">
+  <div class="absolute top-4 left-4">
+    <button onclick="history.back()" class="underline">
+      ← Back
+    </button>
+  </div>
+  <div class="w-full max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-center gap-6 items-stretch">
+
+      <!-- Community Plan -->
+      <div x-data="{ expanded: false }" class="bg-gray-800 rounded-2xl shadow-xl p-6 flex flex-col justify-between border border-cyan-600 hover:scale-105 transition-transform duration-300 w-full md:w-1/3">
+        <div>
+          <h2 class="text-3xl font-semibold text-cyan-300 mb-4">Community</h2> <!-- Increased font size -->
+          <p class="text-gray-300 mb-4">Free for open-source users, students, and researchers.</p>
+          <ul class="text-sm space-y-2 mb-6">
+            <li>✔️ Cyber Dashboard (Basic View)</li>
+            <li>✔️ Traffic Monitoring (Live Capture)</li>
+            <li>✔️ Manual Detection System</li>
+            <li>❌ AI Dashboard with Graphs & Reports</li>
+            <li>❌ Packet Capture</li>
+            <li>❌ CSV Labeling, Real-time Graph</li>
+            <li>❌ CSV Viewer + Editor</li>
+            <li>❌ Graph Viewer (Live JSON-based)</li>
+            <li>❌ Ensemble ML Detection</li>
+            <template x-if="expanded">
+              <div>
+                <li>❌ Manual Detection with Chatbot</li>
+                <li>❌ Real-time ML Detection</li>
+                <li>❌ Email Alerts</li>
+                <li>❌ Access Control & User Settings</li>
+              </div>
+            </template>
+          </ul>
+          <button @click="expanded = !expanded" class="text-sm text-cyan-300 underline hover:text-cyan-100 mb-2">
+            <span x-show="!expanded">Show More</span>
+            <span x-show="expanded">Show Less</span>
+          </button>
+        </div>
+        <div class="text-2xl font-bold text-cyan-400 mt-auto">Free</div>
+      </div>
+
+      <!-- Standard Plan -->
+      <div x-data="{ expanded: false }" class="bg-gray-900 rounded-2xl shadow-2xl p-6 flex flex-col justify-between border border-indigo-500 hover:scale-105 transition-transform duration-300 w-full md:w-1/3">
+        <div>
+          <h2 class="text-3xl font-semibold text-indigo-300 mb-4">Standard</h2> <!-- Increased font size -->
+          <p class="text-gray-300 mb-4">Perfect for startups and small businesses.</p>
+          <ul class="text-sm space-y-2 mb-6">
+            <li>✔️ Cyber Dashboard (Interactive)</li>
+            <li>✔️ Traffic Monitoring (Live Packet Features)</li>
+            <li>✔️ Manual Detection with ML Classifier</li>
+            <li>❌ AI Dashboard with Graphs & Reports</li>
+            <li>❌ Packet Capture</li>
+            <li>❌ CSV Labeling, Real-time Graph</li>
+            <li>❌ CSV Viewer + Editor</li>
+            <li>✔️ Graph Viewer (JSON-based)</li>
+            <li>❌ Ensemble ML Detection</li>
+            <template x-if="expanded">
+              <div>
+                <li>❌ Manual Detection with Chatbot</li>
+                <li>❌ Real-time ML Detection</li>
+                <li>❌ Email Alerts</li>
+                <li>❌ Access Control & User Settings</li>
+              </div>
+            </template>
+          </ul>
+          <button @click="expanded = !expanded" class="text-sm text-indigo-300 underline hover:text-indigo-100 mb-2">
+            <span x-show="!expanded">Show More</span>
+            <span x-show="expanded">Show Less</span>
+          </button>
+        </div>
+        <div class="text-2xl font-bold text-indigo-400 mt-auto">$49/mo</div>
+      </div>
+
+      <!-- Premium Plan -->
+      <div x-data="{ expanded: false }" class="bg-gradient-to-br from-black via-purple-900 to-blue-950 rounded-2xl shadow-2xl p-6 flex flex-col justify-between border-2 border-purple-700 hover:scale-105 transition-transform duration-300 w-full md:w-1/3">
+        <div>
+          <h2 class="text-3xl font-semibold text-purple-200 mb-4">Premium</h2> <!-- Increased font size -->
+          <p class="text-gray-300 mb-4">Enterprise-grade AI-powered defense with full control.</p>
+          <ul class="text-sm space-y-2 mb-6">
+            <li>✔️ Cyber Dashboard (Interactive)</li>
+            <li>✔️ Traffic Monitoring + Packet Capture</li>
+            <li>✔️ Manual Detection with ML Classifier</li>
+            <li>✔️ AI Dashboard with Graphs & Reports</li>
+            <li>✔️ Packet Capture</li>
+            <li>✔️ CSV Labeling, Real-time Graph</li>
+            <li>✔️ CSV Viewer + Editor</li>
+            <li>✔️ Graph Viewer (Live JSON-based)</li>
+            <li>✔️ Ensemble ML Detection</li>
+            <template x-if="expanded">
+              <div>
+                <li>✔️ Manual Detection with Chatbot</li>
+                <li>✔️ Real-time ML Detection</li>
+                <li>✔️ Email Alerts</li>
+                <li>✔️ Access Control & User Settings</li>
+              </div>
+            </template>
+          </ul>
+          <button @click="expanded = !expanded" class="text-sm text-purple-300 underline hover:text-purple-100 mb-2">
+            <span x-show="!expanded">Show More</span>
+            <span x-show="expanded">Show Less</span>
+          </button>
+        </div>
+        <div class="text-2xl font-bold text-purple-400 mt-auto">$199/mo</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

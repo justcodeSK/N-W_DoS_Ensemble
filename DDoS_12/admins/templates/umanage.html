@@ -1,0 +1,155 @@
+{% extends 'admins.html' %}
+{% load static %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="content-section mt-2" id="contact">
+  <header class="mb-6">
+    <h1 class="text-3xl font-bold tracking-widest">User Management</h1>
+    <p class="text-cyan-400">
+      Admin can Manage User.
+    </p>
+  </header>
+
+  <div class="bg-black/60 rounded-xl p-6 shadow-lg backdrop-blur overflow-x-auto">
+
+   <!-- Filter and Search Controls -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+      <!-- Pagination Selector -->
+      <div class="flex items-center space-x-2 text-white">
+        <select id="entriesSelect" class="bg-gray-800 text-white rounded px-2 py-1">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+
+      <!-- Search Field -->
+      <div>
+        <input type="text" id="searchInput" placeholder="Search..." class="px-3 py-2 rounded focus:outline-none focus:ring-2 text-black" />
+      </div>
+    </div>
+
+    <table id="contactTable" class="min-w-full divide-y divide-gray-700 text-white rounded-xl">
+      <thead class="bg-gray-800">
+        <tr>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">First Name</th>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">Last Name</th>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">DOB</th>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">Age</th>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">Email</th>
+          <th class="px-6 py-3 text-center text-left text-xs font-medium uppercase tracking-wider">Action</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody" class="bg-black/50 divide-y divide-gray-700">
+        {% for i in users %}
+          <tr>
+            <td class="px-2 py-3 text-center text-white">{{ i.Fname }}</td>
+            <td class="px-2 py-3 text-center text-white">{{ i.Lname }}</td>
+            <td class="px-2 py-3 text-center text-white">{{ i.Dob|date:"d/m/Y"}}</td>
+            <td class="px-2 py-3 text-center text-white">{{ i.Age }}</td>
+            <td class="px-2 py-3 text-center text-white">{{ i.Email }}</td>
+            <td class="px-2 py-3 text-center text-white">
+              <div id="user-btn-{{ i.id }}">
+                <div id="user-btn-{{ i.id }}">
+                  {% include 'partials/user_button.html' %}
+                </div>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tableBody = document.getElementById("tableBody");
+
+  // Delegate approve click
+  tableBody.addEventListener("click", function (e) {
+    const approveLink = e.target.closest(".ajax-approve");
+    const deleteLink = e.target.closest(".ajax-delete");
+
+    if (approveLink) {
+      e.preventDefault(); // Prevent page reload
+
+      const userId = approveLink.dataset.id;
+
+      // Send AJAX request to approve the user
+      fetch(`/uapprove/${userId}/`, {
+        method: 'GET',
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Dynamically update the button HTML
+        if (data.buttons) {
+          document.getElementById(`user-btn-${userId}`).innerHTML = data.buttons;
+        }
+      })
+      .catch(error => console.error('Error:', error));  // Catch any errors
+    }
+
+    if (deleteLink) {
+      e.preventDefault(); // Prevent page reload
+
+      const userId = deleteLink.dataset.id;
+
+      // Send AJAX request to delete the user
+      fetch(`/deluser/${userId}/`, {
+        method: 'GET',
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.deleted) {
+          const row = document.querySelector(`#user-btn-${userId}`).closest("tr");
+          row.remove(); // Remove the row from the table dynamically
+        }
+      })
+      .catch(error => console.error('Error:', error));  // Catch any errors
+    }
+  });
+});
+
+// filter and  search code
+document.addEventListener("DOMContentLoaded", function () {
+  const searchInput = document.getElementById("searchInput");
+  const entriesSelect = document.getElementById("entriesSelect");
+  const tableBody = document.getElementById("tableBody");
+  const rows = Array.from(tableBody.getElementsByTagName("tr"));
+
+  function updateTable() {
+    const searchTerm = searchInput.value.toLowerCase();
+    const limit = entriesSelect.value === "all" ? rows.length : parseInt(entriesSelect.value);
+
+    let shown = 0;
+    rows.forEach(row => {
+      const rowText = row.innerText.toLowerCase();
+      const match = rowText.includes(searchTerm);
+      if (match && shown < limit) {
+        row.style.display = "";
+        shown++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+  }
+
+  searchInput.addEventListener("input", updateTable);
+  entriesSelect.addEventListener("change", updateTable);
+
+  updateTable(); // initialize on load
+});
+</script>
+
+{% endblock %}
