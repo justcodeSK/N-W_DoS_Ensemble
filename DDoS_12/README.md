@@ -51,6 +51,45 @@
 
 ---
 
+## 🔑 Admin & User Login  
+
+<table>
+  <tr>
+    <th>Role</th>
+    <th>Login Credentials</th>
+    <th>Access & Permissions</th>
+  </tr>
+  <tr>
+    <td><b>👤 Admin</b></td>
+    <td>
+      <b>User ID:</b> <code>admin@gmail.com</code><br>
+      <b>Password:</b> <code>Admin@123</code>
+    </td>
+    <td>
+      - Full access to <b>configuration settings</b>, <b>attack logs</b>, and <b>system control</b>.<br>
+      - Can <b>create new admins</b> from:<br>
+        <i>Admin → Settings → (Top-right corner) Add Admin → Create Admin</i><br>
+      - Can <b>approve / reject</b> new user registrations.<br>
+      - Can <b>delete users</b> anytime.
+    </td>
+  </tr>
+  <tr>
+    <td><b>👥 User</b></td>
+    <td>
+      <b>User ID:</b> <i>Email Set by user</i><br>
+      <b>Password:</b> <i>Set by user</i>
+    </td>
+    <td>
+      - Users can sign up from the <b>Homepage → Create User</b> option.<br>
+      - After signup, the account goes into <b>Pending Approval</b> state.<br>
+      - <b>Admin approval</b> is required before login is enabled.<br>
+      - Once approved, users can view <b>traffic stats</b> & <b>reports</b>.
+    </td>
+  </tr>
+</table>
+
+---
+
 ## 📸 Screenshots (To Be Added)
 - [ ] Real-time traffic monitoring dashboard  
 - [ ] Attack detection (ML prediction)  
